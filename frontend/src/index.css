@@ -1,111 +1,216 @@
+/* ==========================================================================
+   AI-Powered Healthcare Website - Global Design System (index.css)
+   ========================================================================== */
+
+/* Import Premium Typography from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+/* --------------------------------------------------------------------------
+   Design Tokens (CSS Variables)
+   -------------------------------------------------------------------------- */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Fonts */
+  --font-headings: 'Outfit', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Color Palette - Light Theme (Default) */
+  --color-primary: hsl(174, 75%, 38%);        /* Medical Teal */
+  --color-primary-hover: hsl(174, 75%, 30%);
+  --color-primary-light: hsl(174, 75%, 95%);
+  --color-secondary: hsl(238, 70%, 55%);      /* Healthcare AI Indigo */
+  --color-secondary-hover: hsl(238, 70%, 45%);
+  --color-secondary-light: hsl(238, 70%, 95%);
+  
+  --color-accent: hsl(350, 80%, 60%);         /* Emergency Crimson */
+  --color-accent-hover: hsl(350, 80%, 50%);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Neutrals (Light Theme) */
+  --bg-primary: hsl(0, 0%, 100%);
+  --bg-secondary: hsl(210, 30%, 98%);
+  --bg-tertiary: hsl(210, 30%, 95%);
+  --bg-glass: rgba(255, 255, 255, 0.75);
+  
+  --text-primary: hsl(220, 40%, 15%);
+  --text-secondary: hsl(220, 15%, 45%);
+  --text-muted: hsl(220, 10%, 65%);
+  --text-white: hsl(0, 0%, 100%);
+  
+  --border-color: hsl(210, 20%, 90%);
+  --border-color-hover: hsl(210, 20%, 80%);
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* Alerts / Status */
+  --color-success: hsl(145, 63%, 42%);
+  --color-warning: hsl(43, 90%, 50%);
+  --color-danger: hsl(350, 80%, 60%);
+  --color-info: hsl(200, 80%, 45%);
+
+  /* Spacing Scale (8pt Grid System) */
+  --space-xs: 0.25rem;  /* 4px */
+  --space-sm: 0.5rem;   /* 8px */
+  --space-md: 1rem;     /* 16px */
+  --space-lg: 1.5rem;   /* 24px */
+  --space-xl: 2rem;     /* 32px */
+  --space-xxl: 3rem;    /* 48px */
+  --space-huge: 4rem;   /* 64px */
+
+  /* Border Radii */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows (Glassmorphic & Premium Depth) */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(149, 157, 165, 0.1);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.08);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Layout Container */
+  --max-width: 1200px;
+  --header-height: 70px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* --------------------------------------------------------------------------
+   Color Palette - Dark Theme override (Applied via .dark-theme class)
+   ========================================================================== */
+.dark-theme {
+  --color-primary-light: hsl(174, 75%, 15%);
+  --color-secondary-light: hsl(238, 70%, 15%);
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+  /* Neutrals (Dark Theme Override) */
+  --bg-primary: hsl(220, 25%, 10%);
+  --bg-secondary: hsl(220, 25%, 14%);
+  --bg-tertiary: hsl(220, 20%, 18%);
+  --bg-glass: rgba(26, 32, 44, 0.75);
+  
+  --text-primary: hsl(210, 20%, 98%);
+  --text-secondary: hsl(210, 10%, 80%);
+  --text-muted: hsl(210, 10%, 60%);
+  
+  --border-color: hsl(220, 20%, 20%);
+  --border-color-hover: hsl(220, 20%, 28%);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Global Resets & Normalization
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+  overflow-x: hidden;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+/* Typography Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headings);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+  margin-bottom: var(--space-xs);
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h1 { font-size: 2.5rem; font-weight: 800; }
+h2 { font-size: 2rem; font-weight: 700; }
+h3 { font-size: 1.5rem; font-weight: 600; }
+h4 { font-size: 1.25rem; }
+p { margin-bottom: var(--space-md); color: var(--text-secondary); }
+
+/* Anchor Tags */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+a:hover {
+  color: var(--color-primary-hover);
 }
 
-code,
-.counter {
-  font-family: var(--mono);
+/* Buttons Reset (Baseline Styles) */
+button, .btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
   display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  transition: all var(--transition-normal);
+  outline: none;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+button:focus-visible, .btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 180, 162, 0.4);
+}
+
+/* Forms & Inputs Reset */
+input, select, textarea {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  width: 100%;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 180, 162, 0.15);
+}
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }

@@ -3,6 +3,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
 
 // Force Node.js to use public DNS resolvers
 dns.setServers(['1.1.1.1', '8.8.8.8']);
@@ -18,6 +19,9 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Routes Mounting
+app.use('/api/auth', authRoutes);
 
 // Base Route
 app.get('/ping', (req, res) => {

@@ -1,7 +1,11 @@
+import dns from 'dns';
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/db.js';
+
+// Force Node.js to use public DNS resolvers
+dns.setServers(['1.1.1.1', '8.8.8.8']);
 
 // Load environment variables
 dotenv.config();

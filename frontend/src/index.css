@@ -29,7 +29,7 @@
   --bg-primary: hsl(0, 0%, 100%);
   --bg-secondary: hsl(210, 30%, 98%);
   --bg-tertiary: hsl(210, 30%, 95%);
-  --bg-glass: rgba(255, 255, 255, 0.75);
+  --bg-glass: rgba(255, 255, 255, 0.45);
   
   --text-primary: hsl(220, 40%, 15%);
   --text-secondary: hsl(220, 15%, 45%);
@@ -77,8 +77,34 @@
 }
 
 /* --------------------------------------------------------------------------
-   Color Palette - Dark Theme override (Applied via .dark-theme class)
+/* --------------------------------------------------------------------------
+   Color Palette - Dark Theme override (Applied via prefers-color-scheme or manual class)
    -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary-light: hsl(174, 75%, 15%);
+    --color-secondary-light: hsl(238, 70%, 15%);
+
+    /* Neutrals (Dark Theme Override) */
+    --bg-primary: hsl(220, 25%, 10%);
+    --bg-secondary: hsl(220, 25%, 14%);
+    --bg-tertiary: hsl(220, 20%, 18%);
+    --bg-glass: rgba(15, 23, 42, 0.55);
+    
+    --text-primary: hsl(210, 20%, 98%);
+    --text-secondary: hsl(210, 10%, 80%);
+    --text-muted: hsl(210, 10%, 60%);
+    
+    --border-color: hsl(220, 20%, 20%);
+    --border-color-hover: hsl(220, 20%, 28%);
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  }
+}
+
 .dark-theme {
   --color-primary-light: hsl(174, 75%, 15%);
   --color-secondary-light: hsl(238, 70%, 15%);
@@ -87,7 +113,7 @@
   --bg-primary: hsl(220, 25%, 10%);
   --bg-secondary: hsl(220, 25%, 14%);
   --bg-tertiary: hsl(220, 20%, 18%);
-  --bg-glass: rgba(26, 32, 44, 0.75);
+  --bg-glass: rgba(15, 23, 42, 0.55);
   
   --text-primary: hsl(210, 20%, 98%);
   --text-secondary: hsl(210, 10%, 80%);
@@ -148,6 +174,73 @@ body {
 /* Typography elements */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-headings);
+}
+
+/* Premium Glassmorphism Panel Class */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-glass);
+  transition: background var(--transition-normal), border var(--transition-normal);
+}
+
+/* Button Utilities & Resets */
+button, .btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  transition: all var(--transition-normal);
+  outline: none;
+  text-decoration: none;
+}
+
+button:focus-visible, .btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 180, 162, 0.4);
+}
+
+.btn-primary {
+  background-color: var(--color-primary) !important;
+  color: var(--text-white) !important;
+  box-shadow: 0 4px 14px 0 rgba(0, 180, 162, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(0, 180, 162, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background-color: var(--bg-glass) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-primary) !important;
+  background-color: rgba(0, 180, 162, 0.05) !important; /* Soft teal tint */
+  transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
 }
 
 /* Custom Scrollbar */

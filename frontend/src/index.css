@@ -257,3 +257,61 @@ button:focus-visible, .btn:focus-visible {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
+
+/* Global Form Fields & Inputs Styling */
+input, select, textarea {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-color) !important;
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  width: 100% !important;
+  display: block;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+input::placeholder, select::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(0, 180, 162, 0.15) !important;
+  background-color: var(--bg-primary) !important;
+}
+
+/* Prefix & Suffix Icon Padding Helpers */
+.pl-icon-left {
+  padding-left: 2.75rem !important;
+}
+
+.pr-icon-right {
+  padding-right: 2.75rem !important;
+}
+
+/* Dark Mode Form Overrides */
+@media (prefers-color-scheme: dark) {
+  input, select, textarea {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+  }
+  input:focus, select:focus, textarea:focus {
+    background-color: var(--bg-secondary) !important;
+  }
+}
+
+.dark-theme input, .dark-theme select, .dark-theme textarea {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+.dark-theme input:focus, .dark-theme select:focus, .dark-theme textarea:focus {
+  background-color: var(--bg-secondary) !important;
+}

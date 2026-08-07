@@ -98,7 +98,7 @@ function Login() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-11 focus:border-primary"
+                className="pl-icon-left focus:border-primary"
                 required
               />
             </div>
@@ -124,7 +124,7 @@ function Login() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-11 pr-10 focus:border-primary"
+                className="pl-icon-left pr-10 focus:border-primary"
                 required
               />
               <button

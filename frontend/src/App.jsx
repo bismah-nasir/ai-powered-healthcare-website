@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Splash from './pages/Splash';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
 
 // Temporary Home view for testing guest route
 const HomePlaceholder = () => (
@@ -22,7 +23,7 @@ function App() {
           <Route path="/home" element={<HomePlaceholder />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          {/* We will register /forgot-password route next */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Routes>
       </Router>
     </AuthProvider>

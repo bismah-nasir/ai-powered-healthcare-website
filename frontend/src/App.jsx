@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Splash from './pages/Splash';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 
 // Temporary Home view for testing guest route
 const HomePlaceholder = () => (
@@ -20,7 +21,8 @@ function App() {
           <Route path="/" element={<Splash />} />
           <Route path="/home" element={<HomePlaceholder />} />
           <Route path="/login" element={<Login />} />
-          {/* We will register /signup, /forgot-password routes next */}
+          <Route path="/signup" element={<Signup />} />
+          {/* We will register /forgot-password route next */}
         </Routes>
       </Router>
     </AuthProvider>

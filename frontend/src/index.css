@@ -186,8 +186,8 @@ h1, h2, h3, h4, h5, h6 {
   transition: background var(--transition-normal), border var(--transition-normal);
 }
 
-/* Button Utilities & Resets */
-button, .btn {
+/* Button Utilities */
+.btn {
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.95rem;
@@ -204,8 +204,13 @@ button, .btn {
   text-decoration: none;
 }
 
-button:focus-visible, .btn:focus-visible {
+.btn:focus-visible {
   box-shadow: 0 0 0 3px rgba(0, 180, 162, 0.4);
+}
+
+.btn-wide {
+  padding-left: 2.25rem !important;
+  padding-right: 2.25rem !important;
 }
 
 .btn-primary {

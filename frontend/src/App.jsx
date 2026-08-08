@@ -1,16 +1,22 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
 import { AuthProvider } from './context/AuthContext';
+
 import Splash from './pages/Splash';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 
-// Temporary Home view for testing guest route
+import Layout from './components/layout/Layout';
+
+// Temporary Home view for testing routing Layout
 const HomePlaceholder = () => (
-  <div className="p-8 text-center min-h-screen bg-bg-base flex flex-col justify-center items-center">
-    <h1 className="text-3xl font-bold text-primary mb-2 font-headings">PulseCare AI</h1>
-    <p className="text-text-sub font-body">Main Application Dashboard (Guest Access Successful)</p>
+  <div className="py-20 px-6 text-center max-w-150 mx-auto flex flex-col justify-center items-center gap-4">
+    <h1 className="text-4xl font-extrabold text-text-main font-headings">Welcome to PulseCare AI</h1>
+    <p className="text-text-sub font-body leading-relaxed">
+      Your digital healthcare interface is fully configured. You can navigate through the pages in the navbar or toggle the light/dark mode icon to verify CSS styles!
+    </p>
   </div>
 );
 
@@ -19,11 +25,16 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          {/* Standalone Auth Screens (Full Viewport) */}
           <Route path="/" element={<Splash />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/home" element={<HomePlaceholder />} />
+
+          {/* Main Portal Dashboard Routing (Wrapped inside header/footer layout) */}
+          <Route element={<Layout />}>
+            <Route path="/home" element={<HomePlaceholder />} />
+          </Route>
         </Routes>
       </Router>
     </AuthProvider>

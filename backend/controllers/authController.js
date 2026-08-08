@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
+import sendEmail from '../utils/sendEmail.js';
 
 // Helper function to generate JWT
 const generateToken = (id) => {
@@ -161,7 +163,7 @@ export const getUserProfile = async (req, res) => {
 };
 
 /**
- * @desc    Forgot Password (Mock handler)
+ * @desc    Forgot Password (Nodemailer handler)
  * @route   POST /api/auth/forgot-password
  * @access  Public
  */
@@ -184,17 +186,121 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // In a full production app, generate reset token, save to DB, and send email.
-    // Since this is a demo environment, we return a simulated success message.
-    res.status(200).json({
-      success: true,
-      message: `Password reset instructions sent to ${email} (simulated email dispatch).`,
-    });
+    // 1. Generate password reset token
+    const resetToken = crypto.randomBytes(20).toString('hex');
+
+    // 2. Hash token and save to User schema fields with 10 minute expiry
+    user.resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    await user.save();
+
+    // 3. Create reset URL pointing to frontend router page
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+
+    // 4. Draft email HTML template
+    const message = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+        <h2 style="color: #00b4a2; text-align: center;">PulseCare AI</h2>
+        <p>Hello ${user.name},</p>
+        <p>You requested a password reset for your PulseCare AI portal account. Please click the button below to reset your password. This link is valid for 10 minutes:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background-color: #00b4a2; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 8px; display: inline-block;">Reset Password</a>
+        </div>
+        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #718096;"><a href="${resetUrl}">${resetUrl}</a></p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+        <p style="font-size: 11px; color: #a0aec0; text-align: center;">If you did not request this, you can safely ignore this email.</p>
+      </div>
+    `;
+
+    try {
+      const info = await sendEmail({
+        email: user.email,
+        subject: 'PulseCare AI - Password Reset Request',
+        message,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Password reset instructions sent to ${email}.`,
+        previewUrl: info.previewUrl || null, // returns Ethereal URL if dynamically generated
+      });
+    } catch (mailError) {
+      console.error(`[Auth Controller] Email send failed: ${mailError.message}`);
+      // Clear token columns if email send fails
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
+
+      return res.status(500).json({
+        success: false,
+        message: 'Email could not be sent. Please try again later.',
+      });
+    }
   } catch (error) {
     console.error(`[Auth Controller] Forgot Password error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Server error, could not process request',
+    });
+  }
+};
+
+/**
+ * @desc    Reset Password
+ * @route   POST /api/auth/reset-password/:token
+ * @access  Public
+ */
+export const resetPassword = async (req, res) => {
+  const { password } = req.body;
+
+  try {
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide new password',
+      });
+    }
+
+    // 1. Hash incoming token to match with saved database hash
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(req.params.token)
+      .digest('hex');
+
+    // 2. Search for active, non-expired token in DB
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired password recovery token.',
+      });
+    }
+
+    // 3. Set new password (will be hashed automatically by User schema pre-save hook)
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successfully! You can now log in.',
+    });
+  } catch (error) {
+    console.error(`[Auth Controller] Reset Password error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: 'Server error, password reset failed',
     });
   }
 };

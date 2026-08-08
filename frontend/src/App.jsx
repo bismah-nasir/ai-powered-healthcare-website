@@ -1,15 +1,32 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import Splash from './pages/Splash';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+
+// Temporary Home view for testing guest route
+const HomePlaceholder = () => (
+  <div className="p-8 text-center min-h-screen bg-bg-base flex flex-col justify-center items-center">
+    <h1 className="text-3xl font-bold text-primary mb-2 font-headings">PulseCare AI</h1>
+    <p className="text-text-sub font-body">Main Application Dashboard (Guest Access Successful)</p>
+  </div>
+);
 
 function App() {
   return (
-    <div className="p-8 text-center">
-      <h1 className="text-3xl font-bold text-primary mb-4 font-headings">
-        AI-Powered Healthcare Platform
-      </h1>
-      <p className="text-text-sub font-body max-w-md mx-auto">
-        System folder structure successfully initialized with Tailwind CSS v4. Ready to begin building modules.
-      </p>
-    </div>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Splash />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/home" element={<HomePlaceholder />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

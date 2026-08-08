@@ -20,10 +20,10 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Splash />} />
-          <Route path="/home" element={<HomePlaceholder />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/home" element={<HomePlaceholder />} />
         </Routes>
       </Router>
     </AuthProvider>

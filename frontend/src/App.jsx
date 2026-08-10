@@ -7,6 +7,7 @@ import Splash from './pages/Splash';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import Doctors from './pages/Doctors';
 
 import Layout from './components/layout/Layout';
 
@@ -34,6 +35,7 @@ function App() {
           {/* Main Portal Dashboard Routing (Wrapped inside header/footer layout) */}
           <Route element={<Layout />}>
             <Route path="/home" element={<HomePlaceholder />} />
+            <Route path="/doctors" element={<Doctors />} />
           </Route>
         </Routes>
       </Router>

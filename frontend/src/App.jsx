@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import Doctors from './pages/Doctors';
+import BookDoctor from './pages/BookDoctor';
 
 import Layout from './components/layout/Layout';
 
@@ -36,6 +37,7 @@ function App() {
           <Route element={<Layout />}>
             <Route path="/home" element={<HomePlaceholder />} />
             <Route path="/doctors" element={<Doctors />} />
+            <Route path="/book-doctor/:id" element={<BookDoctor />} />
           </Route>
         </Routes>
       </Router>

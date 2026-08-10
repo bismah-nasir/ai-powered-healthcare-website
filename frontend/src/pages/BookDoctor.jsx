@@ -117,7 +117,7 @@ function BookDoctor() {
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-secondary/5 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="max-w-[1000px] mx-auto flex flex-col gap-6 relative z-10">
+      <div className="max-w-250 mx-auto flex flex-col gap-6 relative z-10">
         
         {/* Back navigation */}
         <Link 
@@ -195,7 +195,7 @@ function BookDoctor() {
             </div>
 
             {/* RIGHT COLUMN: Booking Form & Slots (Glassmorphic Card) */}
-            <form onSubmit={handleBookingSubmit} className="flex-grow w-full glass-panel rounded-3xl p-8 flex flex-col gap-6">
+            <form onSubmit={handleBookingSubmit} className="grow w-full glass-panel rounded-3xl p-8 flex flex-col gap-6">
               
               {/* Header Title */}
               <div>
@@ -261,7 +261,7 @@ function BookDoctor() {
                     placeholder="Describe any symptoms, medical history, or details about the booking request..."
                     value={symptoms}
                     onChange={(e) => setSymptoms(e.target.value)}
-                    className="pl-11 focus:border-primary pt-3"
+                    className="pl-icon-left focus:border-primary pt-3"
                   />
                 </div>
               </div>
@@ -318,13 +318,13 @@ function BookDoctor() {
             <div className="w-full flex flex-col sm:flex-row gap-3">
               <Link 
                 to="/home" 
-                className="btn btn-secondary flex-grow py-3.5 rounded-2xl text-sm font-semibold"
+                className="btn btn-secondary grow py-3.5 rounded-2xl text-sm font-semibold"
               >
                 Go to Dashboard
               </Link>
               <Link 
                 to="/doctors" 
-                className="btn btn-primary flex-grow py-3.5 rounded-2xl text-sm font-semibold"
+                className="btn btn-primary grow py-3.5 rounded-2xl text-sm font-semibold"
               >
                 Book Another Doctor
               </Link>

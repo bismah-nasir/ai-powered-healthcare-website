@@ -71,7 +71,7 @@ function Doctors() {
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-secondary/5 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="max-w-[1200px] mx-auto flex flex-col gap-8 relative z-10">
+      <div className="max-w-300 mx-auto flex flex-col gap-8 relative z-10">
         
         {/* Page Title & Intro */}
         <div className="text-center md:text-left">
@@ -142,7 +142,7 @@ function Doctors() {
           </div>
 
           {/* Right Side: Doctor Card Grid or States */}
-          <div className="flex-grow w-full">
+          <div className="grow w-full">
             {loading ? (
               /* SKELETAL LOADER GRID */
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -150,7 +150,7 @@ function Doctors() {
                   <div key={idx} className="glass-panel rounded-3xl p-6 flex flex-col gap-4 animate-pulse">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 bg-border-color rounded-2xl"></div>
-                      <div className="flex-grow flex flex-col gap-2">
+                      <div className="grow flex flex-col gap-2">
                         <div className="h-4 bg-border-color rounded w-3/4"></div>
                         <div className="h-3 bg-border-color rounded w-1/2"></div>
                       </div>
@@ -226,7 +226,7 @@ function Doctors() {
                         </div>
 
                         {/* Title details */}
-                        <div className="flex-grow min-w-0">
+                        <div className="grow min-w-0">
                           {/* Rating badge */}
                           <div className="flex items-center gap-1.5 text-yellow-500 mb-1">
                             <Star className="w-3.5 h-3.5 fill-current" />

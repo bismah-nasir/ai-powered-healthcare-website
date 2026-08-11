@@ -61,13 +61,32 @@ function BookDoctor() {
     }
 
     setSubmitting(true);
+    const token = localStorage.getItem('token');
+
     try {
-      // For this phase, we perform a mock successful booking
-      // We will replace this with a POST to /api/appointments in Phase 9
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      setSuccess(true);
+      const response = await fetch('http://localhost:5000/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          doctorId: id,
+          slotId: selectedSlot._id,
+          symptoms,
+        }),
+      });
+
+      const resData = await response.json();
+
+      if (resData.success) {
+        setSuccess(true);
+      } else {
+        alert(resData.message || 'Booking request failed.');
+      }
     } catch (err) {
-      alert('Booking request failed. Please try again.');
+      console.error('[BookDoctor Page] Submit error:', err.message);
+      alert('Booking request failed. Please check connection and try again.');
     } finally {
       setSubmitting(false);
     }

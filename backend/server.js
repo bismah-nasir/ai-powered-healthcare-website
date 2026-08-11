@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 import medicineRoutes from './routes/medicineRoutes.js';
+import labTestRoutes from './routes/labTestRoutes.js';
 
 // Force Node.js to use public DNS resolvers
 dns.setServers(['1.1.1.1', '8.8.8.8']);
@@ -28,6 +29,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/medicines', medicineRoutes);
+app.use('/api/labs', labTestRoutes);
 
 // Base Route
 app.get('/ping', (req, res) => {

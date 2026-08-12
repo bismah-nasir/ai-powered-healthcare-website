@@ -3,6 +3,7 @@ import Doctor from '../models/Doctor.js';
 import Appointment from '../models/Appointment.js';
 import Medicine from '../models/Medicine.js';
 import Contact from '../models/Contact.js';
+import Order from '../models/Order.js';
 
 /**
  * @desc    Get portal stats and recent logs
@@ -17,13 +18,15 @@ export const getAdminStats = async (req, res) => {
       totalDoctors,
       totalAppointments,
       totalMedicines,
-      totalTickets
+      totalTickets,
+      totalOrders
     ] = await Promise.all([
       User.countDocuments({ role: 'patient' }),
       Doctor.countDocuments(),
       Appointment.countDocuments(),
       Medicine.countDocuments(),
       Contact.countDocuments(),
+      Order.countDocuments(),
     ]);
 
     // 2. Fetch recent support tickets
@@ -38,6 +41,12 @@ export const getAdminStats = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5);
 
+    // 4. Fetch recent pharmacy orders with populated patient
+    const recentOrders = await Order.find()
+      .populate('patient', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
     res.status(200).json({
       success: true,
       data: {
@@ -47,9 +56,11 @@ export const getAdminStats = async (req, res) => {
           totalAppointments,
           totalMedicines,
           totalTickets,
+          totalOrders,
         },
         recentTickets,
         recentAppointments,
+        recentOrders,
       },
     });
   } catch (error) {

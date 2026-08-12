@@ -12,6 +12,7 @@ import BookDoctor from './pages/BookDoctor';
 import MyAppointments from './pages/MyAppointments';
 import Medicines from './pages/Medicines';
 import Labs from './pages/Labs';
+import Emergency from './pages/Emergency';
 
 import Layout from './components/layout/Layout';
 
@@ -44,6 +45,7 @@ function App() {
             <Route path="/my-appointments" element={<MyAppointments />} />
             <Route path="/medicines" element={<Medicines />} />
             <Route path="/labs" element={<Labs />} />
+            <Route path="/emergency" element={<Emergency />} />
           </Route>
         </Routes>
       </Router>

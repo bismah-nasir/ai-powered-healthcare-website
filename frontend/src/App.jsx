@@ -15,6 +15,7 @@ import Labs from './pages/Labs';
 import Emergency from './pages/Emergency';
 import Blog from './pages/Blog';
 import Contact from './pages/Contact';
+import AdminDashboard from './pages/AdminDashboard';
 
 import Layout from './components/layout/Layout';
 
@@ -50,6 +51,7 @@ function App() {
             <Route path="/emergency" element={<Emergency />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
         </Routes>
       </Router>

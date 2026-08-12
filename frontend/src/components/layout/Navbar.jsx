@@ -142,6 +142,16 @@ function Navbar() {
                     <p className="text-xs font-bold text-text-main truncate">{user.name}</p>
                     <p className="text-[10px] text-text-mute truncate mt-0.5">{user.email}</p>
                   </div>
+                  {user.role === 'admin' && (
+                    <Link
+                      to="/admin"
+                      onClick={handleNavClick}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-text-sub hover:text-primary hover:bg-primary/5 rounded-xl transition-colors mb-1.5"
+                    >
+                      <User className="w-4 h-4 text-primary" />
+                      Admin Dashboard
+                    </Link>
+                  )}
                   <Link
                     to="/my-appointments"
                     onClick={handleNavClick}
@@ -231,6 +241,16 @@ function Navbar() {
                   <p className="text-[10px] text-text-mute truncate">{user.email}</p>
                 </div>
               </div>
+              {user.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  onClick={handleNavClick}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-text-sub hover:text-primary bg-bg-secondary/40 rounded-xl justify-center transition-colors border border-border-color mb-2"
+                >
+                  <User className="w-4 h-4 text-primary" />
+                  Admin Dashboard
+                </Link>
+              )}
               <Link
                 to="/my-appointments"
                 onClick={handleNavClick}

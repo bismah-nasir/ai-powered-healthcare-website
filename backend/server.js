@@ -12,6 +12,7 @@ import emergencyRoutes from './routes/emergencyRoutes.js';
 import blogRoutes from './routes/blogRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 
 // Force Node.js to use public DNS resolvers
 dns.setServers(['1.1.1.1', '8.8.8.8']);
@@ -38,6 +39,7 @@ app.use('/api/emergency', emergencyRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Base Route
 app.get('/ping', (req, res) => {

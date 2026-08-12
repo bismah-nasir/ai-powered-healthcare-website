@@ -242,6 +242,22 @@ header {
   transform: translateY(0);
 }
 
+.btn-danger {
+  background-color: var(--color-accent) !important;
+  color: var(--text-white) !important;
+  box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.25) !important;
+}
+
+.btn-danger:hover {
+  background-color: var(--color-accent-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(239, 68, 68, 0.35) !important;
+}
+
+.btn-danger:active {
+  transform: translateY(0);
+}
+
 .btn-secondary {
   background-color: var(--bg-glass) !important;
   backdrop-filter: blur(12px) !important;

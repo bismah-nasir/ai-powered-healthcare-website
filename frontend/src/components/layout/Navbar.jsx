@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { HeartPulse, ShoppingCart, Sun, Moon, Menu, X, LogOut, User, Calendar } from 'lucide-react';
 
 const getInitials = (name) => {
@@ -14,6 +15,7 @@ const getInitials = (name) => {
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const { cartCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -21,9 +23,6 @@ function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-
-  // Stubbed cart count
-  const cartCount = 0;
 
   // Sync Dark Mode state on load matching browser media query or body class
   useEffect(() => {

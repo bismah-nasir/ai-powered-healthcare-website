@@ -13,6 +13,7 @@ import MyAppointments from './pages/MyAppointments';
 import Medicines from './pages/Medicines';
 import Labs from './pages/Labs';
 import Emergency from './pages/Emergency';
+import Blog from './pages/Blog';
 
 import Layout from './components/layout/Layout';
 
@@ -46,6 +47,7 @@ function App() {
             <Route path="/medicines" element={<Medicines />} />
             <Route path="/labs" element={<Labs />} />
             <Route path="/emergency" element={<Emergency />} />
+            <Route path="/blog" element={<Blog />} />
           </Route>
         </Routes>
       </Router>

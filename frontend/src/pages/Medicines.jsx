@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ShoppingCart, AlertTriangle, Check, Info, ShieldAlert, HeartPulse } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 const CATEGORIES = [
   'All',
@@ -58,15 +59,18 @@ function Medicines() {
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, selectedCategory]);
 
-  // Mock add to cart handler
-  const handleAddToCart = (medicineId, name) => {
-    setCartFeedback(prev => ({ ...prev, [medicineId]: true }));
+  const { addToCart } = useCart();
+
+  // Add to cart handler
+  const handleAddToCart = (med) => {
+    addToCart(med);
+    setCartFeedback(prev => ({ ...prev, [med._id]: true }));
     
     // Clear feedback icon after 1.5 seconds
     setTimeout(() => {
       setCartFeedback(prev => {
         const updated = { ...prev };
-        delete updated[medicineId];
+        delete updated[med._id];
         return updated;
       });
     }, 1500);
@@ -291,7 +295,7 @@ function Medicines() {
                         <button
                           type="button"
                           disabled={isOutOfStock}
-                          onClick={() => handleAddToCart(med._id, med.name)}
+                          onClick={() => handleAddToCart(med)}
                           className={`btn rounded-2xl py-3 px-5 text-xs font-semibold flex items-center gap-1.5 transition-all duration-300 border-0 ${
                             isOutOfStock
                               ? 'bg-bg-secondary text-text-mute cursor-not-allowed'

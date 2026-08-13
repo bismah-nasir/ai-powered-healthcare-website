@@ -210,14 +210,15 @@ function Medicines() {
             ) : (
               /* MEDICINES PRODUCT DECK */
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {medicines.map((med) => {
+                {medicines.map((med, idx) => {
                   const isAdded = cartFeedback[med._id];
                   const isOutOfStock = med.stock === 0;
 
                   return (
                     <div 
                       key={med._id}
-                      className="glass-panel rounded-3xl p-5 flex flex-col justify-between gap-4 hover:border-primary hover:shadow-lg transition-all duration-300 group"
+                      style={{ animationDelay: `${(idx % 6) * 75}ms` }}
+                      className="glass-panel rounded-3xl p-5 flex flex-col justify-between gap-4 hover:border-primary hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group animate-slide-up"
                     >
                       {/* Product Image Frame */}
                       <div className="relative w-full h-40 rounded-2xl overflow-hidden bg-bg-secondary/50 flex items-center justify-center border border-border-color">
@@ -296,7 +297,7 @@ function Medicines() {
                           type="button"
                           disabled={isOutOfStock}
                           onClick={() => handleAddToCart(med)}
-                          className={`btn rounded-2xl py-3 px-5 text-xs font-semibold flex items-center gap-1.5 transition-all duration-300 border-0 ${
+                          className={`btn text-sm! font-semibold flex items-center gap-1.5 transition-all duration-300 border-0 disabled:opacity-75 disabled:cursor-not-allowed disabled:pointer-events-none ${
                             isOutOfStock
                               ? 'bg-bg-secondary text-text-mute cursor-not-allowed'
                               : isAdded

@@ -255,11 +255,12 @@ function Labs() {
             ) : (
               /* DIAGNOSTICS DECK GRID */
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {labTests.map((test) => {
+                {labTests.map((test, idx) => {
                   return (
                     <div 
                       key={test._id}
-                      className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-5 hover:border-primary hover:shadow-lg transition-all duration-300 group"
+                      style={{ animationDelay: `${(idx % 6) * 75}ms` }}
+                      className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-5 hover:border-primary hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group animate-slide-up"
                     >
                       {/* Top Header details */}
                       <div>

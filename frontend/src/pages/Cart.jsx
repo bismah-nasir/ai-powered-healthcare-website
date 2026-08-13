@@ -25,6 +25,7 @@ function Cart() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [orderReceipt, setOrderReceipt] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Constants
   const DELIVERY_FEE = cartSubtotal > 1500 ? 0 : 150; // Free delivery for orders above Rs 1500
@@ -34,8 +35,14 @@ function Cart() {
   const requiresPrescription = cartItems.some((item) => item.requiresPrescription);
 
   const handleCheckoutSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (cartItems.length === 0) return;
+
+    // Check if user is logged in
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
 
     setCheckoutLoading(true);
 
@@ -412,6 +419,41 @@ function Cart() {
             >
               Close Receipt
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM AUTH REQUIRED MODAL OVERLAY */}
+      {authModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
+          <div className="w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
+            <div className="w-14 h-14 bg-danger/10 flex items-center justify-center rounded-full text-danger">
+              <ShieldAlert className="w-9 h-9" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-text-main font-headings">Authentication Required</h3>
+              <p className="text-xs text-text-sub font-body leading-relaxed mt-2 max-w-xs mx-auto">
+                Please sign in to your PulseCare account to verify your delivery details and complete your checkout.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 w-full mt-2">
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(false)}
+                className="btn btn-secondary grow py-3.5 rounded-2xl text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <Link
+                to="/login"
+                className="btn btn-primary grow py-3.5 rounded-2xl text-xs font-semibold border-0 text-center"
+              >
+                Sign In
+              </Link>
+            </div>
           </div>
         </div>
       )}

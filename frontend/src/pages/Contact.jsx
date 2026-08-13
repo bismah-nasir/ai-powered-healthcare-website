@@ -67,7 +67,7 @@ function Contact() {
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-secondary/5 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="max-w-[1100px] mx-auto flex flex-col gap-10 relative z-10">
+      <div className="max-w-275 mx-auto flex flex-col gap-10 relative z-10">
         
         {/* Page Title */}
         <div className="text-center">
@@ -86,7 +86,7 @@ function Contact() {
           <div className="lg:col-span-5 flex flex-col gap-6">
             
             {/* Address Card */}
-            <div className="glass-panel rounded-3xl p-6 flex gap-4 hover:border-primary/30 transition-all duration-300">
+            <div className="glass-panel rounded-3xl p-6 flex gap-4 hover:border-primary/30 transition-all duration-300 animate-slide-up delay-75">
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 text-primary">
                 <MapPin className="w-6 h-6" />
               </div>
@@ -100,7 +100,7 @@ function Contact() {
             </div>
 
             {/* Hotlines Card */}
-            <div className="glass-panel rounded-3xl p-6 flex gap-4 hover:border-primary/30 transition-all duration-300">
+            <div className="glass-panel rounded-3xl p-6 flex gap-4 hover:border-primary/30 transition-all duration-300 animate-slide-up delay-100">
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 text-primary">
                 <Phone className="w-6 h-6" />
               </div>
@@ -114,7 +114,7 @@ function Contact() {
             </div>
 
             {/* Emails Card */}
-            <div className="glass-panel rounded-3xl p-6 flex gap-4 hover:border-primary/30 transition-all duration-300">
+            <div className="glass-panel rounded-3xl p-6 flex gap-4 hover:border-primary/30 transition-all duration-300 animate-slide-up delay-150">
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 text-primary">
                 <Mail className="w-6 h-6" />
               </div>
@@ -128,7 +128,7 @@ function Contact() {
             </div>
 
             {/* Hours Card */}
-            <div className="glass-panel rounded-3xl p-6 flex gap-4 hover:border-primary/30 transition-all duration-300">
+            <div className="glass-panel rounded-3xl p-6 flex gap-4 hover:border-primary/30 transition-all duration-300 animate-slide-up delay-200">
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 text-primary">
                 <Clock className="w-6 h-6" />
               </div>
@@ -147,7 +147,7 @@ function Contact() {
           <div className="lg:col-span-7">
             <form 
               onSubmit={handleSubmit}
-              className="glass-panel rounded-3xl p-8 flex flex-col gap-5 h-full justify-between"
+              className="glass-panel rounded-3xl p-8 flex flex-col gap-5 h-full justify-between animate-scale-in delay-150"
             >
               <div>
                 <h2 className="text-lg font-bold text-text-main font-headings">Send Us a Message</h2>
@@ -272,7 +272,7 @@ function Contact() {
                     value={formData.message}
                     onChange={handleChange}
                     placeholder="Write details of your message or question..."
-                    className="pl-icon-left focus:border-primary w-full min-h-[100px] resize-y py-3.5"
+                    className="pl-icon-left focus:border-primary w-full min-h-25 resize-y py-3.5"
                   />
                 </div>
               </div>
@@ -281,7 +281,7 @@ function Contact() {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 border-0 shadow-lg mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn btn-primary w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 border-0 shadow-lg mt-2 disabled:opacity-75 disabled:cursor-not-allowed disabled:pointer-events-none"
               >
                 <Send className="w-4 h-4" />
                 {loading ? 'Sending Request...' : 'Send Message'}

@@ -25,6 +25,7 @@ function Cart() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [orderReceipt, setOrderReceipt] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Constants
   const DELIVERY_FEE = cartSubtotal > 1500 ? 0 : 150; // Free delivery for orders above Rs 1500
@@ -34,33 +35,58 @@ function Cart() {
   const requiresPrescription = cartItems.some((item) => item.requiresPrescription);
 
   const handleCheckoutSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (cartItems.length === 0) return;
+
+    // Check if user is logged in
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
 
     setCheckoutLoading(true);
 
     try {
-      // Simulate order processing delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: cartItems,
+          shippingAddress,
+          contactPhone,
+          paymentMethod,
+        }),
+      });
 
-      const receipt = {
-        orderId: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-        items: [...cartItems],
-        subtotal: cartSubtotal,
-        deliveryFee: DELIVERY_FEE,
-        total: orderTotal,
-        address: shippingAddress,
-        phone: contactPhone,
-        payment: paymentMethod,
-        date: new Date().toLocaleDateString(),
-      };
+      const data = await response.json();
 
-      setOrderReceipt(receipt);
-      setCheckoutSuccess(true);
-      clearCart(); // Reset cart on successful checkout
+      if (response.ok && data.success) {
+        // Construct receipt matching schema return data
+        const receipt = {
+          orderId: data.data._id,
+          items: data.data.items,
+          subtotal: data.data.subtotal,
+          deliveryFee: data.data.deliveryFee,
+          total: data.data.orderTotal,
+          address: data.data.shippingAddress,
+          phone: data.data.contactPhone,
+          payment: data.data.paymentMethod,
+          date: new Date(data.data.createdAt).toLocaleDateString(),
+        };
+
+        setOrderReceipt(receipt);
+        setCheckoutSuccess(true);
+        clearCart(); // Reset cart on successful checkout
+      } else {
+        alert(data.message || 'Checkout failed. Please review your order.');
+      }
     } catch (error) {
-      console.error('[Checkout Form] Error:', error.message);
-      alert('Checkout failed. Please try again.');
+      console.error('[Checkout Form] Connection Error:', error.message);
+      alert('Failed to connect to the server. Please ensure the backend is running.');
     } finally {
       setCheckoutLoading(false);
     }
@@ -97,7 +123,7 @@ function Cart() {
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-secondary/5 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="max-w-[1100px] mx-auto flex flex-col gap-8 relative z-10">
+      <div className="max-w-275 mx-auto flex flex-col gap-8 relative z-10">
         
         {/* Back Link */}
         <div>
@@ -146,7 +172,7 @@ function Cart() {
                     </div>
 
                     {/* Item Details */}
-                    <div className="flex-grow min-w-0">
+                    <div className="grow min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h4 className="font-bold text-sm text-text-main truncate leading-snug">{item.name}</h4>
                         {item.requiresPrescription && (
@@ -215,7 +241,7 @@ function Cart() {
                     value={shippingAddress}
                     onChange={(e) => setShippingAddress(e.target.value)}
                     placeholder="Enter complete shipping or residential address..."
-                    className="pl-icon-left focus:border-primary w-full min-h-[80px] resize-y py-3.5"
+                    className="pl-icon-left focus:border-primary w-full min-h-20 resize-y py-3.5"
                   />
                 </div>
               </div>
@@ -374,7 +400,7 @@ function Cart() {
               <div className="mt-1 pt-1.5 border-t border-border-color/60 text-text-sub flex flex-col gap-1">
                 {orderReceipt.items.map((item) => (
                   <div key={item._id} className="flex justify-between items-center text-[11px]">
-                    <span className="truncate max-w-[200px]">{item.name} (x{item.quantity})</span>
+                    <span className="truncate max-w-50">{item.name} (x{item.quantity})</span>
                     <span>Rs {item.price * item.quantity}</span>
                   </div>
                 ))}
@@ -393,6 +419,41 @@ function Cart() {
             >
               Close Receipt
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM AUTH REQUIRED MODAL OVERLAY */}
+      {authModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
+          <div className="w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
+            <div className="w-14 h-14 bg-danger/10 flex items-center justify-center rounded-full text-danger">
+              <ShieldAlert className="w-9 h-9" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-text-main font-headings">Authentication Required</h3>
+              <p className="text-xs text-text-sub font-body leading-relaxed mt-2 max-w-xs mx-auto">
+                Please sign in to your PulseCare account to verify your delivery details and complete your checkout.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 w-full mt-2">
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(false)}
+                className="btn btn-secondary grow py-3.5 rounded-2xl text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <Link
+                to="/login"
+                className="btn btn-primary grow py-3.5 rounded-2xl text-xs font-semibold border-0 text-center"
+              >
+                Sign In
+              </Link>
+            </div>
           </div>
         </div>
       )}

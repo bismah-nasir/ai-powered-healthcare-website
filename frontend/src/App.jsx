@@ -8,6 +8,7 @@ import Splash from './pages/Splash';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import Home from './pages/Home';
 import Doctors from './pages/Doctors';
 import BookDoctor from './pages/BookDoctor';
 import MyAppointments from './pages/MyAppointments';
@@ -20,16 +21,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import Cart from './pages/Cart';
 
 import Layout from './components/layout/Layout';
-
-// Temporary Home view for testing routing Layout
-const HomePlaceholder = () => (
-  <div className="py-20 px-6 text-center max-w-150 mx-auto flex flex-col justify-center items-center gap-4">
-    <h1 className="text-4xl font-extrabold text-text-main font-headings">Welcome to PulseCare AI</h1>
-    <p className="text-text-sub font-body leading-relaxed">
-      Your digital healthcare interface is fully configured. You can navigate through the pages in the navbar or toggle the light/dark mode icon to verify CSS styles!
-    </p>
-  </div>
-);
 
 function App() {
   return (
@@ -45,7 +36,7 @@ function App() {
 
             {/* Main Portal Dashboard Routing (Wrapped inside header/footer layout) */}
             <Route element={<Layout />}>
-              <Route path="/home" element={<HomePlaceholder />} />
+              <Route path="/home" element={<Home />} />
               <Route path="/doctors" element={<Doctors />} />
               <Route path="/book-doctor/:id" element={<BookDoctor />} />
               <Route path="/my-appointments" element={<MyAppointments />} />

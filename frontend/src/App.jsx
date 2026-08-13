@@ -23,6 +23,7 @@ import Cart from './pages/Cart';
 
 import Layout from './components/layout/Layout';
 import PageTransition from './components/layout/PageTransition';
+import ScrollToTop from './components/layout/ScrollToTop';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -60,6 +61,7 @@ function App() {
     <AuthProvider>
       <CartProvider>
         <Router>
+          <ScrollToTop />
           <AnimatedRoutes />
         </Router>
       </CartProvider>

@@ -158,12 +158,12 @@ function Cart() {
             <div className="glass-panel rounded-3xl p-6 flex flex-col gap-4">
               <h3 className="text-sm font-bold text-text-main tracking-wider uppercase font-headings mb-2">Selected Items</h3>
               
-              <div className="flex flex-col gap-4 divide-y divide-border-color/30">
+              <div className="flex flex-col">
                 {cartItems.map((item, idx) => (
                   <div 
                     key={item._id} 
                     style={{ animationDelay: `${(idx % 6) * 75}ms` }}
-                    className="flex gap-4 pt-4 first:pt-0 items-start justify-between animate-slide-up"
+                    className="flex gap-4 py-4 border-b border-border-color/20 last:border-b-0 items-start justify-between animate-slide-up"
                   >
                     
                     {/* Item Thumbnail */}

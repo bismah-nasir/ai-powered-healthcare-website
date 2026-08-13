@@ -156,6 +156,10 @@
   --color-danger: var(--color-danger);
   --color-info: var(--color-info);
 
+  /* Border colors */
+  --color-border-color: var(--border-color);
+  --color-border-color-hover: var(--border-color-hover);
+
   /* Fonts mapping */
   --font-headings: var(--font-headings);
   --font-body: var(--font-body);

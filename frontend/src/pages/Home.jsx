@@ -28,6 +28,28 @@ const HEALTH_TIPS = [
   }
 ];
 
+// Dynamic Count Up Timer component using requestAnimationFrame (60fps hardware-accelerated)
+function AnimatedCounter({ value, duration = 1500, suffix = "" }) {
+  const [count, setCount] = React.useState(0);
+
+  React.useEffect(() => {
+    let startTime = null;
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const easeProgress = progress * (2 - progress); // easeOutQuad
+      setCount(Math.floor(easeProgress * value));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    requestAnimationFrame(animate);
+  }, [value, duration]);
+
+  return <span>{count.toLocaleString()}{suffix}</span>;
+}
+
 function Home() {
   const navigate = useNavigate();
   const [globalSearch, setGlobalSearch] = useState('');
@@ -87,21 +109,23 @@ function Home() {
           {/* Centralized Global Search Bar with pl-icon-left helper */}
           <form 
             onSubmit={handleGlobalSearchSubmit}
-            className="w-full max-w-xl relative mt-3 shadow-lg rounded-2xl overflow-hidden border border-border-color bg-bg-base transition-shadow duration-300 focus-within:shadow-primary/5"
+            className="w-full max-w-xl flex items-stretch gap-3 mt-3"
           >
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-mute">
-              <Search className="w-5 h-5" />
-            </span>
-            <input
-              type="text"
-              placeholder="Search doctors, medicines, laboratory tests..."
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              className="pl-icon-left pr-20 py-4 focus:border-primary border-0 w-full rounded-2xl bg-transparent"
-            />
+            <div className="relative grow shadow-sm rounded-xl overflow-hidden bg-transparent flex items-center">
+              <span className="absolute left-4 text-text-mute">
+                <Search className="w-5 h-5" />
+              </span>
+              <input
+                type="text"
+                placeholder="Search doctors, medicines, laboratory tests..."
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                className="pl-icon-left py-4 focus:border-primary border-0 w-full rounded-2xl bg-transparent"
+              />
+            </div>
             <button 
               type="submit" 
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 btn btn-primary py-2 px-4 rounded-xl text-xs font-semibold active:scale-[0.97] transition-transform duration-150"
+              className="btn btn-primary px-6 text-sm font-semibold active:scale-[0.97] transition-transform duration-150 shadow-md border-0 shrink-0 flex items-center justify-center"
             >
               Search
             </button>
@@ -239,7 +263,9 @@ function Home() {
               <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
                 <UserCheck className="w-4 h-4" />
               </div>
-              <h4 className="text-lg font-extrabold text-text-main font-headings mt-1">10,000+</h4>
+              <h4 className="text-lg font-extrabold text-text-main font-headings mt-1">
+                <AnimatedCounter value={10000} suffix="+" />
+              </h4>
               <p className="text-[9px] text-text-mute font-semibold uppercase tracking-wider font-body">Happy Patients</p>
             </div>
 
@@ -248,7 +274,9 @@ function Home() {
               <div className="w-8 h-8 rounded-full bg-success/10 text-success flex items-center justify-center shrink-0">
                 <Award className="w-4 h-4" />
               </div>
-              <h4 className="text-lg font-extrabold text-text-main font-headings mt-1">150+</h4>
+              <h4 className="text-lg font-extrabold text-text-main font-headings mt-1">
+                <AnimatedCounter value={150} suffix="+" />
+              </h4>
               <p className="text-[9px] text-text-mute font-semibold uppercase tracking-wider font-body">Expert Doctors</p>
             </div>
 
@@ -257,7 +285,9 @@ function Home() {
               <div className="w-8 h-8 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
-              <h4 className="text-lg font-extrabold text-text-main font-headings mt-1">50+</h4>
+              <h4 className="text-lg font-extrabold text-text-main font-headings mt-1">
+                <AnimatedCounter value={50} suffix="+" />
+              </h4>
               <p className="text-[9px] text-text-mute font-semibold uppercase tracking-wider font-body">Diagnostics Packages</p>
             </div>
 
@@ -266,7 +296,9 @@ function Home() {
               <div className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
-              <h4 className="text-lg font-extrabold text-text-main font-headings mt-1">20 Min</h4>
+              <h4 className="text-lg font-extrabold text-text-main font-headings mt-1">
+                <AnimatedCounter value={20} suffix=" Min" />
+              </h4>
               <p className="text-[9px] text-text-mute font-semibold uppercase tracking-wider font-body">Avg Delivery</p>
             </div>
 

@@ -147,9 +147,9 @@ function Labs() {
         {/* Search & Filter Control Bar */}
         <div className="w-full flex flex-col md:flex-row gap-4 items-center justify-between">
           
-          {/* Spaced Search Bar with pl-icon-left helper to prevent overlap */}
-          <div className="relative w-full md:max-w-md">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-mute">
+          {/* Search Bar */}
+          <div className="relative w-full md:max-w-md shadow-sm rounded-xl overflow-hidden bg-transparent flex items-center">
+            <span className="absolute left-4 text-text-mute">
               <Search className="w-5 h-5" />
             </span>
             <input
@@ -157,7 +157,7 @@ function Labs() {
               placeholder="Search by test name or specific parameter (e.g. cholesterol)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-icon-left focus:border-primary w-full"
+              className="pl-icon-left py-4 focus:border-primary border-0 w-full rounded-2xl bg-transparent"
             />
           </div>
 

@@ -86,8 +86,8 @@ function Doctors() {
         {/* Filters and Search Dashboard Control Bar */}
         <div className="w-full flex flex-col md:flex-row gap-4 items-center justify-between">
           {/* Text Search Bar Input */}
-          <div className="relative w-full md:max-w-md">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-mute">
+          <div className="relative w-full md:max-w-md shadow-sm rounded-xl overflow-hidden bg-transparent flex items-center">
+            <span className="absolute left-4 text-text-mute">
               <Search className="w-5 h-5" />
             </span>
             <input
@@ -95,7 +95,7 @@ function Doctors() {
               placeholder="Search by doctor name or specialization..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-icon-left focus:border-primary w-full"
+              className="pl-icon-left py-4 focus:border-primary border-0 w-full rounded-2xl bg-transparent"
             />
           </div>
 
@@ -197,7 +197,7 @@ function Doctors() {
             ) : (
               /* DOCTORS GRID VIEW */
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {doctors.map((doctor) => {
+                {doctors.map((doctor, idx) => {
                   const nextSlot = doctor.availableSlots && doctor.availableSlots.length > 0 
                     ? `${doctor.availableSlots[0].day} at ${doctor.availableSlots[0].time}`
                     : 'No slots available';
@@ -205,7 +205,8 @@ function Doctors() {
                   return (
                     <div 
                       key={doctor._id}
-                      className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-5 hover:border-primary hover:shadow-lg transition-all duration-300 group"
+                      style={{ animationDelay: `${(idx % 6) * 75}ms` }}
+                      className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-5 hover:border-primary hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group animate-slide-up"
                     >
                       {/* Top profile segment */}
                       <div className="flex items-start gap-4">
@@ -276,7 +277,7 @@ function Doctors() {
                         {/* Booking redirect button */}
                         <Link 
                           to={`/book-doctor/${doctor._id}`}
-                          className="btn btn-primary py-3 px-5 rounded-2xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+                          className="btn btn-primary rounded-xl text-sm! font-semibold flex items-center gap-1.5 transition-all"
                         >
                           Book Now
                           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

@@ -229,14 +229,15 @@ function MyAppointments() {
         ) : (
           /* CARD DECK LIST */
           <div className="flex flex-col gap-4">
-            {activeAppointmentsList.map((app) => {
+            {activeAppointmentsList.map((app, idx) => {
               const docInfo = app.doctor || {};
               const isUpcoming = app.status === 'confirmed' || app.status === 'pending';
 
               return (
                 <div
                   key={app._id}
-                  className="glass-panel rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 hover:border-primary/40 hover:shadow-md transition-all duration-300"
+                  style={{ animationDelay: `${(idx % 6) * 75}ms` }}
+                  className="glass-panel rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-1 transition-all duration-300 animate-slide-up"
                 >
                   {/* Left profile detail segment */}
                   <div className="flex items-start gap-4 w-full sm:w-auto">
@@ -301,7 +302,7 @@ function MyAppointments() {
                         type="button"
                         disabled={cancellingId === app._id}
                         onClick={() => handleCancelClick(app)}
-                        className="btn btn-secondary w-full sm:w-auto px-4 py-2 rounded-xl text-xs text-danger hover:bg-danger/10 hover:border-danger font-semibold transition-all"
+                        className="btn btn-secondary w-full sm:w-auto px-4 py-2 rounded-xl text-xs text-danger hover:bg-danger/10 hover:border-danger font-semibold transition-all disabled:grayscale disabled:cursor-not-allowed disabled:pointer-events-none"
                       >
                         {cancellingId === app._id ? 'Cancelling...' : 'Cancel Appointment'}
                       </button>

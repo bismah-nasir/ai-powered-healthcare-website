@@ -304,7 +304,7 @@ function BookDoctor() {
               <button
                 type="submit"
                 disabled={submitting || (doctor.availableSlots && doctor.availableSlots.length === 0)}
-                className="btn btn-primary w-full py-4 rounded-2xl text-base font-semibold mt-2"
+                className="btn btn-primary w-full py-4 rounded-2xl text-base font-semibold mt-2 disabled:grayscale disabled:cursor-not-allowed disabled:pointer-events-none"
               >
                 {submitting ? 'Processing Booking...' : user ? 'Confirm Appointment' : 'Sign In to Book Appointment'}
               </button>

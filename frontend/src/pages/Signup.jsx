@@ -195,7 +195,7 @@ function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-primary w-full py-4 rounded-2xl text-base font-semibold transition-all duration-300 mt-2"
+            className="btn btn-primary w-full py-4 rounded-2xl text-base font-semibold transition-all duration-300 mt-2 disabled:grayscale disabled:cursor-not-allowed disabled:pointer-events-none"
           >
             {loading ? 'Creating Account...' : 'Get Started'}
           </button>

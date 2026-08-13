@@ -122,9 +122,9 @@ function Blog() {
         {/* Search & Category Filter Navigation Control Bar */}
         <div className="w-full flex flex-col gap-4">
           
-          {/* Spaced Search Bar with pl-icon-left helper */}
-          <div className="relative w-full md:max-w-md">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-mute">
+          {/* Search Bar */}
+          <div className="relative w-full md:max-w-md shadow-sm rounded-xl overflow-hidden bg-transparent flex items-center">
+            <span className="absolute left-4 text-text-mute">
               <Search className="w-5 h-5" />
             </span>
             <input
@@ -132,7 +132,7 @@ function Blog() {
               placeholder="Search by keywords, tags, or article titles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-icon-left focus:border-primary w-full"
+              className="pl-icon-left py-4 focus:border-primary border-0 w-full rounded-2xl bg-transparent"
             />
           </div>
 
@@ -207,12 +207,13 @@ function Blog() {
           ) : (
             /* BLOG CARDS GRID */
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {articles.map((article) => {
+              {articles.map((article, idx) => {
                 return (
                   <div
                     key={article._id}
                     onClick={() => handleReadArticleClick(article)}
-                    className="glass-panel rounded-3xl p-5 flex flex-col justify-between gap-4 hover:border-primary/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
+                    style={{ animationDelay: `${(idx % 6) * 75}ms` }}
+                    className="glass-panel rounded-3xl p-5 flex flex-col justify-between gap-4 hover:border-primary/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer animate-slide-up"
                   >
                     {/* Cover Image Frame */}
                     <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-bg-secondary/50 flex items-center justify-center border border-border-color">

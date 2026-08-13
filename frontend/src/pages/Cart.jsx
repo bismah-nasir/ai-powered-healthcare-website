@@ -158,9 +158,13 @@ function Cart() {
             <div className="glass-panel rounded-3xl p-6 flex flex-col gap-4">
               <h3 className="text-sm font-bold text-text-main tracking-wider uppercase font-headings mb-2">Selected Items</h3>
               
-              <div className="flex flex-col gap-4 divide-y divide-border-color/30">
-                {cartItems.map((item) => (
-                  <div key={item._id} className="flex gap-4 pt-4 first:pt-0 items-start justify-between">
+              <div className="flex flex-col">
+                {cartItems.map((item, idx) => (
+                  <div 
+                    key={item._id} 
+                    style={{ animationDelay: `${(idx % 6) * 75}ms` }}
+                    className="flex gap-4 py-4 border-b border-border-color/20 last:border-b-0 items-start justify-between animate-slide-up"
+                  >
                     
                     {/* Item Thumbnail */}
                     <div className="w-16 h-16 rounded-xl overflow-hidden border border-border-color shrink-0 bg-bg-secondary/40 flex items-center justify-center text-text-mute">
@@ -361,7 +365,7 @@ function Cart() {
                 type="button"
                 onClick={handleCheckoutSubmit}
                 disabled={checkoutLoading}
-                className="btn btn-primary w-full py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 mt-2 border-0 shadow-lg"
+                className="btn btn-primary w-full py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 mt-2 border-0 shadow-lg disabled:grayscale disabled:cursor-not-allowed disabled:pointer-events-none"
               >
                 {checkoutLoading ? 'Processing Checkout...' : 'Confirm Order Checkout'}
               </button>
@@ -415,7 +419,7 @@ function Cart() {
             <button
               type="button"
               onClick={handleCloseSuccess}
-              className="btn btn-primary w-full py-3.5 rounded-2xl text-xs font-semibold"
+              className="btn btn-primary w-full text-sm! font-semibold"
             >
               Close Receipt
             </button>
@@ -443,13 +447,13 @@ function Cart() {
               <button
                 type="button"
                 onClick={() => setAuthModalOpen(false)}
-                className="btn btn-secondary grow py-3.5 rounded-2xl text-xs font-semibold"
+                className="btn btn-secondary grow text-sm! font-semibold"
               >
                 Cancel
               </button>
               <Link
                 to="/login"
-                className="btn btn-primary grow py-3.5 rounded-2xl text-xs font-semibold border-0 text-center"
+                className="btn btn-primary grow text-sm! font-semibold border-0 text-center"
               >
                 Sign In
               </Link>

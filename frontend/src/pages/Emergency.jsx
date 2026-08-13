@@ -129,9 +129,9 @@ function Emergency() {
         {/* Search & Filter Control Bar */}
         <div className="w-full flex flex-col md:flex-row gap-4 items-center justify-between">
           
-          {/* Spaced Search Bar with pl-icon-left helper to prevent overlap */}
-          <div className="relative w-full md:max-w-md">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-mute">
+          {/* Search Bar */}
+          <div className="relative w-full md:max-w-md shadow-sm rounded-xl overflow-hidden bg-transparent flex items-center">
+            <span className="absolute left-4 text-text-mute">
               <Search className="w-5 h-5" />
             </span>
             <input
@@ -139,7 +139,7 @@ function Emergency() {
               placeholder="Search by facility name, city, or address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-icon-left focus:border-primary w-full"
+              className="pl-icon-left py-4 focus:border-primary border-0 w-full rounded-2xl bg-transparent"
             />
           </div>
 
@@ -238,11 +238,12 @@ function Emergency() {
             ) : (
               /* DIRECTORY DECK GRID */
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {emergencies.map((item) => {
+                {emergencies.map((item, idx) => {
                   return (
                     <div 
                       key={item._id}
-                      className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-5 hover:border-danger/40 hover:shadow-lg transition-all duration-300 group"
+                      style={{ animationDelay: `${(idx % 6) * 75}ms` }}
+                      className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-5 hover:border-danger/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group animate-slide-up"
                     >
                       {/* Top Header Row */}
                       <div className="flex items-start gap-4">
@@ -279,7 +280,7 @@ function Emergency() {
                         {/* Primary Click to call */}
                         <a 
                           href={`tel:${item.contactNumber.replace(/[^0-9+]/g, '')}`}
-                          className="btn btn-danger py-3 px-5 rounded-2xl text-xs font-semibold flex items-center gap-1.5 w-full justify-center"
+                          className="btn btn-danger text-xs! font-semibold flex items-center gap-1.5 w-full justify-center"
                         >
                           <Phone className="w-3.5 h-3.5 fill-current" />
                           Call: {item.contactNumber}
@@ -289,7 +290,7 @@ function Emergency() {
                         {item.altContactNumber && (
                           <a 
                             href={`tel:${item.altContactNumber.replace(/[^0-9+]/g, '')}`}
-                            className="btn btn-secondary py-3 px-5 rounded-2xl text-xs text-text-sub hover:text-text-main font-semibold transition-all w-full justify-center"
+                            className="btn btn-secondary text-xs! text-text-sub hover:text-text-main font-semibold transition-all w-full justify-center"
                           >
                             Alt Call
                           </a>

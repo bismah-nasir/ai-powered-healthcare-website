@@ -103,7 +103,7 @@ function Navbar() {
           <button 
             type="button" 
             onClick={toggleTheme}
-            className="text-text-sub hover:text-primary p-2 rounded-xl transition-colors bg-transparent border-0"
+            className="text-text-sub hover:text-primary p-2 rounded-xl transition-all duration-300 hover:rotate-12 active:scale-95 bg-transparent border-0 cursor-pointer"
             aria-label="Toggle Theme"
           >
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -112,7 +112,7 @@ function Navbar() {
           {/* Cart Icon Link */}
           <Link 
             to="/cart" 
-            className="relative text-text-sub hover:text-primary p-2 rounded-xl transition-colors"
+            className="relative text-text-sub hover:text-primary p-2 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
             aria-label="Shopping Cart"
           >
             <ShoppingCart className="w-5 h-5" />
@@ -129,7 +129,7 @@ function Navbar() {
               <button
                 type="button"
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="w-10 h-10 bg-primary/10 hover:bg-primary/20 text-primary font-bold rounded-full flex items-center justify-center border-0 transition-colors"
+                className="w-10 h-10 bg-primary/10 hover:bg-primary/20 text-primary font-bold rounded-full flex items-center justify-center border-0 transition-all duration-300 active:scale-95 hover:scale-105 cursor-pointer"
               >
                 {getInitials(user.name)}
               </button>

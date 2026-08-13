@@ -66,11 +66,11 @@ function Home() {
       <div className="max-w-275 mx-auto flex flex-col gap-12 relative z-10">
         
         {/* HERO SECTION */}
-        <div className="text-center flex flex-col items-center gap-6 max-w-3xl mx-auto mt-4">
+        <div className="text-center flex flex-col items-center gap-6 max-w-3xl mx-auto mt-4 animate-slide-up">
           
           {/* Tagline */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase rounded-full font-body tracking-wider">
-            <Activity className="w-3.5 h-3.5" /> Next-Gen AI Healthcare Portal
+            <Activity className="w-3.5 h-3.5 animate-pulse" /> Next-Gen AI Healthcare Portal
           </div>
 
           {/* Heading */}
@@ -87,7 +87,7 @@ function Home() {
           {/* Centralized Global Search Bar with pl-icon-left helper */}
           <form 
             onSubmit={handleGlobalSearchSubmit}
-            className="w-full max-w-xl relative mt-3 shadow-lg rounded-2xl overflow-hidden border border-border-color bg-bg-base"
+            className="w-full max-w-xl relative mt-3 shadow-lg rounded-2xl overflow-hidden border border-border-color bg-bg-base transition-shadow duration-300 focus-within:shadow-primary/5"
           >
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-mute">
               <Search className="w-5 h-5" />
@@ -101,7 +101,7 @@ function Home() {
             />
             <button 
               type="submit" 
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 btn btn-primary py-2 px-4 rounded-xl text-xs font-semibold"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 btn btn-primary py-2 px-4 rounded-xl text-xs font-semibold active:scale-[0.97] transition-transform duration-150"
             >
               Search
             </button>
@@ -111,7 +111,7 @@ function Home() {
 
         {/* INTERACTIVE SERVICES GRID */}
         <div className="flex flex-col gap-4">
-          <div className="text-center md:text-left">
+          <div className="text-center md:text-left animate-fade-in delay-100">
             <h2 className="text-xl font-bold text-text-main font-headings">Our Medical Services</h2>
             <p className="text-xs text-text-sub font-body mt-0.5">Explore unified diagnostic and e-commerce solutions</p>
           </div>
@@ -121,11 +121,11 @@ function Home() {
             {/* Card 1: Find Doctors */}
             <Link 
               to="/doctors"
-              className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-primary hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer text-left"
+              className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-primary hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer text-left animate-slide-up delay-75"
             >
               <div className="flex flex-col gap-3">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
-                  <Calendar className="w-5 h-5" />
+                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                  <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <h3 className="text-base font-bold text-text-main group-hover:text-primary font-headings transition-colors leading-snug">
                   Consult Specialists
@@ -142,11 +142,11 @@ function Home() {
             {/* Card 2: Pharmacy Store */}
             <Link 
               to="/medicines"
-              className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-secondary hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer text-left"
+              className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-secondary hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer text-left animate-slide-up delay-100"
             >
               <div className="flex flex-col gap-3">
-                <div className="w-10 h-10 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center">
-                  <Pill className="w-5 h-5" />
+                <div className="w-10 h-10 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                  <Pill className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <h3 className="text-base font-bold text-text-main group-hover:text-secondary font-headings transition-colors leading-snug">
                   Online Pharmacy
@@ -163,11 +163,11 @@ function Home() {
             {/* Card 3: Lab Tests */}
             <Link 
               to="/labs"
-              className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-primary hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer text-left"
+              className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-primary hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer text-left animate-slide-up delay-150"
             >
               <div className="flex flex-col gap-3">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
-                  <Activity className="w-5 h-5" />
+                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                  <Activity className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <h3 className="text-base font-bold text-text-main group-hover:text-primary font-headings transition-colors leading-snug">
                   Diagnostics Labs
@@ -184,11 +184,11 @@ function Home() {
             {/* Card 4: Emergency Contacts */}
             <Link 
               to="/emergency"
-              className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-danger hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer text-left"
+              className="glass-panel rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-danger hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer text-left animate-slide-up delay-200"
             >
               <div className="flex flex-col gap-3">
-                <div className="w-10 h-10 bg-danger/10 text-danger rounded-xl flex items-center justify-center">
-                  <ShieldAlert className="w-5 h-5" />
+                <div className="w-10 h-10 bg-danger/10 text-danger rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                  <ShieldAlert className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <h3 className="text-base font-bold text-text-main group-hover:text-danger font-headings transition-colors leading-snug">
                   Emergency Directory
@@ -209,11 +209,11 @@ function Home() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch">
           
           {/* Left Column: Daily Wellness Tip Callout (7 cols) */}
-          <div className="md:col-span-7">
-            <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 md:p-8 flex flex-col justify-between gap-5 h-full text-left">
+          <div className="md:col-span-7 animate-slide-up delay-150">
+            <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 md:p-8 flex flex-col justify-between gap-5 h-full text-left hover:border-primary/20 transition-all duration-300">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-[9px] font-bold uppercase rounded-lg font-body tracking-wide">
-                  <Heart className="w-3.5 h-3.5 fill-current" /> Daily Wellness Tip
+                  <Heart className="w-3.5 h-3.5 fill-current animate-pulse" /> Daily Wellness Tip
                 </div>
                 <h3 className="text-lg font-bold text-text-main font-headings mt-4 leading-snug">
                   {dailyTip.title}
@@ -232,10 +232,10 @@ function Home() {
           </div>
 
           {/* Right Column: Platform Trust Metrics Grid (5 cols) */}
-          <div className="md:col-span-5 grid grid-cols-2 gap-4">
+          <div className="md:col-span-5 grid grid-cols-2 gap-4 animate-scale-in delay-200">
             
             {/* Metric 1 */}
-            <div className="glass-panel rounded-3xl p-5 flex flex-col justify-center items-center text-center gap-1.5">
+            <div className="glass-panel rounded-3xl p-5 flex flex-col justify-center items-center text-center gap-1.5 hover:-translate-y-1 hover:border-primary/20 transition-all duration-300">
               <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
                 <UserCheck className="w-4 h-4" />
               </div>
@@ -244,7 +244,7 @@ function Home() {
             </div>
 
             {/* Metric 2 */}
-            <div className="glass-panel rounded-3xl p-5 flex flex-col justify-center items-center text-center gap-1.5">
+            <div className="glass-panel rounded-3xl p-5 flex flex-col justify-center items-center text-center gap-1.5 hover:-translate-y-1 hover:border-primary/20 transition-all duration-300">
               <div className="w-8 h-8 rounded-full bg-success/10 text-success flex items-center justify-center shrink-0">
                 <Award className="w-4 h-4" />
               </div>
@@ -253,7 +253,7 @@ function Home() {
             </div>
 
             {/* Metric 3 */}
-            <div className="glass-panel rounded-3xl p-5 flex flex-col justify-center items-center text-center gap-1.5">
+            <div className="glass-panel rounded-3xl p-5 flex flex-col justify-center items-center text-center gap-1.5 hover:-translate-y-1 hover:border-primary/20 transition-all duration-300">
               <div className="w-8 h-8 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
@@ -262,7 +262,7 @@ function Home() {
             </div>
 
             {/* Metric 4 */}
-            <div className="glass-panel rounded-3xl p-5 flex flex-col justify-center items-center text-center gap-1.5">
+            <div className="glass-panel rounded-3xl p-5 flex flex-col justify-center items-center text-center gap-1.5 hover:-translate-y-1 hover:border-primary/20 transition-all duration-300">
               <div className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4" />
               </div>

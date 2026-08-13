@@ -281,7 +281,7 @@ function Contact() {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 border-0 shadow-lg mt-2 disabled:opacity-75 disabled:cursor-not-allowed disabled:pointer-events-none"
+                className="btn btn-primary w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 border-0 shadow-lg mt-2 disabled:grayscale disabled:cursor-not-allowed disabled:pointer-events-none"
               >
                 <Send className="w-4 h-4" />
                 {loading ? 'Sending Request...' : 'Send Message'}

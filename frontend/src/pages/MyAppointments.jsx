@@ -302,7 +302,7 @@ function MyAppointments() {
                         type="button"
                         disabled={cancellingId === app._id}
                         onClick={() => handleCancelClick(app)}
-                        className="btn btn-secondary w-full sm:w-auto px-4 py-2 rounded-xl text-xs text-danger hover:bg-danger/10 hover:border-danger font-semibold transition-all disabled:opacity-75 disabled:cursor-not-allowed disabled:pointer-events-none"
+                        className="btn btn-secondary w-full sm:w-auto px-4 py-2 rounded-xl text-xs text-danger hover:bg-danger/10 hover:border-danger font-semibold transition-all disabled:grayscale disabled:cursor-not-allowed disabled:pointer-events-none"
                       >
                         {cancellingId === app._id ? 'Cancelling...' : 'Cancel Appointment'}
                       </button>

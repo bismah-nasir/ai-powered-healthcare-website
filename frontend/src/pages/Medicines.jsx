@@ -297,7 +297,7 @@ function Medicines() {
                           type="button"
                           disabled={isOutOfStock}
                           onClick={() => handleAddToCart(med)}
-                          className={`btn text-sm! font-semibold flex items-center gap-1.5 transition-all duration-300 border-0 disabled:opacity-75 disabled:cursor-not-allowed disabled:pointer-events-none ${
+                          className={`btn text-sm! font-semibold flex items-center gap-1.5 transition-all duration-300 border-0 disabled:grayscale disabled:cursor-not-allowed disabled:pointer-events-none ${
                             isOutOfStock
                               ? 'bg-bg-secondary text-text-mute cursor-not-allowed'
                               : isAdded

@@ -4,6 +4,14 @@ import Medicine from '../models/Medicine.js';
 
 const PAYMENT_METHODS = ['COD', 'Card'];
 
+// Adds reserved quantities back to stock when checkout fails partway
+const restoreStock = (reservedItems) =>
+  Promise.all(
+    reservedItems.map((item) =>
+      Medicine.updateOne({ _id: item.medicine }, { $inc: { stock: item.quantity } })
+    )
+  );
+
 /**
  * @desc    Create a new medicine order (Checkout)
  * @route   POST /api/orders
@@ -11,6 +19,7 @@ const PAYMENT_METHODS = ['COD', 'Card'];
  */
 export const createOrder = async (req, res) => {
   const { items, shippingAddress, contactPhone, paymentMethod } = req.body;
+  const reserved = []; // Items whose stock has been deducted but not yet confirmed by a saved order
 
   try {
     if (!Array.isArray(items) || items.length === 0) {
@@ -59,25 +68,31 @@ export const createOrder = async (req, res) => {
       }
     }
 
+    // Merge duplicate cart lines so each medicine is checked against its total quantity
+    const mergedItems = new Map();
+    for (const item of items) {
+      const id = String(item._id);
+      const existing = mergedItems.get(id);
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        mergedItems.set(id, { name: item.name, quantity: item.quantity });
+      }
+    }
+
     const orderItems = [];
     let calculatedSubtotal = 0;
 
-    // 1. Validate stocks and populate items details
-    for (const item of items) {
-      const med = await Medicine.findById(item._id);
+    // 1. Look up catalog details and prices
+    for (const [id, item] of mergedItems) {
+      const med = await Medicine.findById(id);
 
       if (!med) {
         return res.status(404).json({
           success: false,
+          code: 'ITEM_NOT_FOUND',
           message: `Medicine not found in catalog: ${item.name}`,
-        });
-      }
-
-      // Check stock availability
-      if (med.stock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient stock for ${med.name}. Only ${med.stock} units available.`,
+          item: { medicineId: id, name: item.name },
         });
       }
 
@@ -92,11 +107,42 @@ export const createOrder = async (req, res) => {
       calculatedSubtotal += med.price * item.quantity;
     }
 
-    // 2. Billing calculations
+    // 2. Reserve stock atomically: each update only succeeds if enough stock remains,
+    // so simultaneous orders cannot both take the last units
+    for (const item of orderItems) {
+      const updated = await Medicine.findOneAndUpdate(
+        { _id: item.medicine, stock: { $gte: item.quantity } },
+        { $inc: { stock: -item.quantity } },
+        { new: true }
+      );
+
+      if (!updated) {
+        await restoreStock(reserved);
+        reserved.length = 0;
+        const current = await Medicine.findById(item.medicine).select('stock');
+        const available = current ? current.stock : 0;
+        // Structured details let the frontend highlight the item and offer to adjust it
+        return res.status(400).json({
+          success: false,
+          code: 'INSUFFICIENT_STOCK',
+          message: `Insufficient stock for ${item.name}. Only ${available} units available.`,
+          item: {
+            medicineId: String(item.medicine),
+            name: item.name,
+            requested: item.quantity,
+            available,
+          },
+        });
+      }
+
+      reserved.push(item);
+    }
+
+    // 3. Billing calculations
     const deliveryFee = calculatedSubtotal > 1500 ? 0 : 150;
     const orderTotal = calculatedSubtotal + deliveryFee;
 
-    // 3. Create the order
+    // 4. Create the order
     const order = new Order({
       patient: req.user.id,
       items: orderItems,
@@ -109,13 +155,7 @@ export const createOrder = async (req, res) => {
     });
 
     await order.save();
-
-    // 4. Deduct medicine stock levels atomically
-    for (const item of orderItems) {
-      await Medicine.findByIdAndUpdate(item.medicine, {
-        $inc: { stock: -item.quantity },
-      });
-    }
+    reserved.length = 0; // Order saved, stock deduction is now final
 
     res.status(201).json({
       success: true,
@@ -123,6 +163,13 @@ export const createOrder = async (req, res) => {
       data: order,
     });
   } catch (error) {
+    // Give back any stock reserved before the failure
+    try {
+      await restoreStock(reserved);
+    } catch (restoreError) {
+      console.error(`[Order Controller] Stock restore failed: ${restoreError.message}`);
+    }
+
     // Safety net for any schema rule not covered by the checks above
     if (error.name === 'ValidationError') {
       return res.status(400).json({

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { HeartPulse, CalendarCheck, Pill, Bot } from 'lucide-react';
@@ -10,9 +10,10 @@ function Splash() {
   // Brand Intro Loader (solid primary fill screen)
   const [showBrandIntro, setShowBrandIntro] = useState(true);
 
-  // Local state to manage visual loader phase for auth verify
-  const [showLoader, setShowLoader] = useState(false);
-  const [initFinished, setInitFinished] = useState(false);
+  // Visual loader phase for auth verify (only shown if verification takes longer than 200ms)
+  const [loaderDelayPassed, setLoaderDelayPassed] = useState(false);
+  const showLoader = loading && loaderDelayPassed;
+  const initFinished = !loading;
 
   // 1. Brand intro countdown
   useEffect(() => {
@@ -22,28 +23,17 @@ function Splash() {
     return () => clearTimeout(introTimer);
   }, []);
 
-  // 2. Auth initialization sync
+  // 2. 200ms delay timer to prevent loader flickering on fast connections
   useEffect(() => {
-    // 200ms delay timer to prevent flickering on fast connections
-    const delayTimer = setTimeout(() => {
-      if (loading) {
-        setShowLoader(true);
-      }
-    }, 200);
-
-    // If global loading has resolved
-    if (!loading) {
-      clearTimeout(delayTimer);
-      setShowLoader(false);
-      setInitFinished(true);
-
-      // Route authenticated users directly after brand intro completes
-      if (user && !showBrandIntro) {
-        navigate('/home');
-      }
-    }
-
+    const delayTimer = setTimeout(() => setLoaderDelayPassed(true), 200);
     return () => clearTimeout(delayTimer);
+  }, []);
+
+  // 3. Route authenticated users directly after brand intro completes
+  useEffect(() => {
+    if (!loading && user && !showBrandIntro) {
+      navigate('/home');
+    }
   }, [loading, user, navigate, showBrandIntro]);
 
   return (

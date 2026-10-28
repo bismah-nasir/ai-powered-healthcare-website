@@ -321,7 +321,7 @@ function MyAppointments() {
       {/* CANCELLATION DIALOG MODAL */}
       {cancelModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-md glass-panel rounded-3xl p-6 text-center flex flex-col items-center gap-5 shadow-2xl">
+          <div className="w-full max-w-lg bg-bg-base border border-border-color rounded-3xl p-6 text-center flex flex-col items-center gap-5 shadow-2xl">
             <div className="w-12 h-12 bg-danger/10 text-danger rounded-full flex items-center justify-center">
               <AlertCircle className="w-6 h-6" />
             </div>
@@ -336,18 +336,18 @@ function MyAppointments() {
               </p>
             </div>
 
-            <div className="w-full flex gap-3">
+            <div className="w-full flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
-                className="btn btn-secondary grow py-3 rounded-2xl text-xs font-semibold"
+                className="btn btn-secondary flex-1 py-3! px-4! rounded-2xl text-sm! font-semibold whitespace-nowrap"
               >
                 No, Keep Booking
               </button>
               <button
                 type="button"
                 onClick={confirmCancellation}
-                className="btn btn-primary bg-danger hover:bg-danger-hover text-white grow py-3 rounded-2xl text-xs font-semibold border-0"
+                className="btn btn-danger flex-1 py-3! px-4! rounded-2xl text-sm! font-semibold whitespace-nowrap border-0"
               >
                 Yes, Cancel Appointment
               </button>

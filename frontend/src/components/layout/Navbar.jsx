@@ -90,6 +90,7 @@ function Navbar() {
         <nav className="hidden lg:flex items-center gap-5 xl:gap-8">
           {renderNavLink('/home', 'Home')}
           {renderNavLink('/doctors', 'Doctors')}
+          {renderNavLink('/symptom-checker', 'Symptom Checker')}
           {renderNavLink('/medicines', 'Pharmacy')}
           {renderNavLink('/labs', 'Lab Tests')}
           {renderNavLink('/emergency', 'Emergency')}
@@ -219,6 +220,7 @@ function Navbar() {
           <nav className="flex flex-col gap-4">
             {renderNavLink('/home', 'Home')}
             {renderNavLink('/doctors', 'Doctors')}
+            {renderNavLink('/symptom-checker', 'Symptom Checker')}
             {renderNavLink('/medicines', 'Pharmacy')}
             {renderNavLink('/labs', 'Lab Tests')}
             {renderNavLink('/emergency', 'Emergency')}

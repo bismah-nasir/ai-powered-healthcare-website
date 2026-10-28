@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Users, HeartPulse, Calendar, Mail, FileText, Clock, 
-  CheckCircle, AlertTriangle, Shield, Settings, Info, X, 
-  ShoppingBag, CreditCard, MapPin, Phone
+import {
+  Users, HeartPulse, Calendar, Mail, Clock,
+  Shield, Settings, X,
+  ShoppingBag, CreditCard, MapPin
 } from 'lucide-react';
 
 function AdminDashboard() {
@@ -25,34 +25,32 @@ function AdminDashboard() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderModalOpen, setOrderModalOpen] = useState(false);
 
-  // Fetch admin dashboard details
-  const fetchDashboardStats = async () => {
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      const resData = await response.json();
-
-      if (resData.success) {
-        setStats(resData.data);
-      } else {
-        setErrorMsg(resData.message || 'Access denied. Administrators only.');
-      }
-    } catch (err) {
-      console.error('[Admin Dashboard] Fetch error:', err.message);
-      setErrorMsg('Failed to connect to the server. Please verify the backend.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch admin dashboard details on mount (loading starts as true, so no reset is needed)
   useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5000/api/admin/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        const resData = await response.json();
+
+        if (resData.success) {
+          setStats(resData.data);
+        } else {
+          setErrorMsg(resData.message || 'Access denied. Administrators only.');
+        }
+      } catch (err) {
+        console.error('[Admin Dashboard] Fetch error:', err.message);
+        setErrorMsg('Failed to connect to the server. Please verify the backend.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchDashboardStats();
   }, []);
 

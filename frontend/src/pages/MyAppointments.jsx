@@ -1,16 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Calendar, Clock, DollarSign, HeartPulse, User, FileText, AlertCircle, XCircle, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Calendar, Clock, FileText, AlertCircle, XCircle, CheckCircle } from 'lucide-react';
+
+const LOGIN_REQUIRED_MESSAGE = 'You must be logged in to view appointments.';
+
+// Fetch appointments list, resolving to { data } on success or { error } on failure
+const requestAppointments = async (token) => {
+  try {
+    const response = await fetch('http://localhost:5000/api/appointments/my', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const resData = await response.json();
+
+    if (resData.success) {
+      return { data: resData.data };
+    }
+    return { error: resData.message || 'Failed to fetch appointments list.' };
+  } catch (err) {
+    console.error('[MyAppointments Page] Fetch error:', err.message);
+    return { error: 'Failed to connect to the server. Please verify backend is running.' };
+  }
+};
 
 function MyAppointments() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  // Appointments states
+  // Appointments states (start in the logged-out error state when no token is stored)
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('token')));
+  const [error, setError] = useState(() => (localStorage.getItem('token') ? '' : LOGIN_REQUIRED_MESSAGE));
   
   // UI States
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'history'
@@ -18,44 +39,35 @@ function MyAppointments() {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
 
-  // Fetch appointments list
-  const fetchAppointments = async () => {
+  // Re-fetch appointments list (retry button and after a cancellation)
+  const fetchAppointments = () => {
     setLoading(true);
     setError('');
     const token = localStorage.getItem('token');
-    
+
     if (!token) {
-      setError('You must be logged in to view appointments.');
+      setError(LOGIN_REQUIRED_MESSAGE);
       setLoading(false);
       return;
     }
 
-    try {
-      const response = await fetch('http://localhost:5000/api/appointments/my', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      const resData = await response.json();
-
-      if (resData.success) {
-        setAppointments(resData.data);
-      } else {
-        setError(resData.message || 'Failed to fetch appointments list.');
-      }
-    } catch (err) {
-      console.error('[MyAppointments Page] Fetch error:', err.message);
-      setError('Failed to connect to the server. Please verify backend is running.');
-    } finally {
+    requestAppointments(token).then(({ data, error: requestError }) => {
+      if (data) setAppointments(data);
+      else setError(requestError);
       setLoading(false);
-    }
+    });
   };
 
+  // Initial load (state is only updated once the request settles)
   useEffect(() => {
-    fetchAppointments();
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    requestAppointments(token).then(({ data, error: requestError }) => {
+      if (data) setAppointments(data);
+      else setError(requestError);
+      setLoading(false);
+    });
   }, []);
 
   // Cancel booking handler
@@ -321,7 +333,7 @@ function MyAppointments() {
       {/* CANCELLATION DIALOG MODAL */}
       {cancelModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-md glass-panel rounded-3xl p-6 text-center flex flex-col items-center gap-5 shadow-2xl">
+          <div className="w-full max-w-lg bg-bg-base border border-border-color rounded-3xl p-6 text-center flex flex-col items-center gap-5 shadow-2xl">
             <div className="w-12 h-12 bg-danger/10 text-danger rounded-full flex items-center justify-center">
               <AlertCircle className="w-6 h-6" />
             </div>
@@ -336,18 +348,18 @@ function MyAppointments() {
               </p>
             </div>
 
-            <div className="w-full flex gap-3">
+            <div className="w-full flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
-                className="btn btn-secondary grow py-3 rounded-2xl text-xs font-semibold"
+                className="btn btn-secondary flex-1 py-3! px-4! rounded-2xl text-sm! font-semibold whitespace-nowrap"
               >
                 No, Keep Booking
               </button>
               <button
                 type="button"
                 onClick={confirmCancellation}
-                className="btn btn-primary bg-danger hover:bg-danger-hover text-white grow py-3 rounded-2xl text-xs font-semibold border-0"
+                className="btn btn-danger flex-1 py-3! px-4! rounded-2xl text-sm! font-semibold whitespace-nowrap border-0"
               >
                 Yes, Cancel Appointment
               </button>

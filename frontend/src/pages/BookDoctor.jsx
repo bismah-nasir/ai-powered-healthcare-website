@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HeartPulse, Calendar, Clock, Star, DollarSign, Award, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
+import { HeartPulse, Calendar, Clock, Star, Award, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
 
 function BookDoctor() {
   const { id } = useParams();

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, Star, DollarSign, Award, ArrowRight, HeartPulse } from 'lucide-react';
+import { Search, Calendar, Star, Award, ArrowRight, HeartPulse, X } from 'lucide-react';
 
 // Department Category List matching Mongoose schema enums
 const DEPARTMENTS = [

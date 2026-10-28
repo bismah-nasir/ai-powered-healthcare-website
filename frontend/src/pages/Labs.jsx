@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Search, Calendar, Clock, DollarSign, AlertTriangle, ShieldAlert, Check, HeartPulse, FileText, CheckCircle, Info, User, Phone } from 'lucide-react';
+import { Search, Calendar, Clock, AlertTriangle, ShieldAlert, HeartPulse, CheckCircle, Info, User, Phone } from 'lucide-react';
 
 const CATEGORIES = [
   'All',
@@ -38,13 +38,15 @@ function Labs() {
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Sync patient details when user state loads
-  useEffect(() => {
+  // Sync patient details when user state loads (adjusting state during render instead of in an effect)
+  const [syncedUser, setSyncedUser] = useState(user);
+  if (user !== syncedUser) {
+    setSyncedUser(user);
     if (user) {
       setPatientName(user.name);
       setPatientPhone(user.phone || '');
     }
-  }, [user]);
+  }
 
   // Fetch lab tests dynamically from the backend
   useEffect(() => {
@@ -109,7 +111,7 @@ function Labs() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setBookingSuccess(true);
       setBookingModalOpen(false);
-    } catch (err) {
+    } catch {
       alert('Booking request failed. Please try again.');
     } finally {
       setBookingSubmitting(false);

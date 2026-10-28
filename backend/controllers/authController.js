@@ -199,7 +199,8 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     // 3. Create reset URL pointing to frontend router page
-    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const resetUrl = `${clientUrl}/reset-password/${resetToken}`;
 
     // 4. Draft email HTML template
     const message = `
@@ -263,6 +264,13 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Please provide new password',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long',
       });
     }
 

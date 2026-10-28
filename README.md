@@ -55,6 +55,8 @@ PulseCare features a custom visual system built using **Tailwind CSS v4** and **
     # Primary model, and the backup used if the primary is unavailable or rate limited
     GEMINI_MODEL=gemini-3.5-flash-lite
     GEMINI_FALLBACK_MODEL=gemini-3.1-flash-lite
+    # Frontend URL used in password reset emails (defaults to http://localhost:5173)
+    CLIENT_URL=http://localhost:5173
     ```
 3.  Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey). Without it, the rest of the app works normally and the Symptom Checker returns a "not configured" message. The `/api/triage` endpoint is limited to 5 requests per minute per IP to stay within Gemini free-tier quotas.
 

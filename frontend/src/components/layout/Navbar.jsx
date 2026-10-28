@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -21,25 +21,22 @@ function Navbar() {
   
   // Navigation states
   const [isOpen, setIsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // Sync Dark Mode state on load matching browser media query or body class
-  useEffect(() => {
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const hasDarkClass = document.documentElement.classList.contains('dark-theme');
-    setIsDarkMode(hasDarkClass || systemPrefersDark);
-  }, []);
+  // Initial Dark Mode state from a manually chosen theme class, else the system preference
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const root = document.documentElement;
+    if (root.classList.contains('dark-theme')) return true;
+    if (root.classList.contains('light-theme')) return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
-  // Theme Toggler
+  // Theme Toggler (light-theme class overrides the system dark preference)
   const toggleTheme = () => {
     const nextMode = !isDarkMode;
     setIsDarkMode(nextMode);
-    if (nextMode) {
-      document.documentElement.classList.add('dark-theme');
-    } else {
-      document.documentElement.classList.remove('dark-theme');
-    }
+    document.documentElement.classList.toggle('dark-theme', nextMode);
+    document.documentElement.classList.toggle('light-theme', !nextMode);
   };
 
   // Close mobile drawer on route click
@@ -74,10 +71,10 @@ function Navbar() {
 
   return (
     <header className="sticky top-0 w-full bg-bg-base/80 backdrop-blur-md border-b border-border-color z-50 transition-colors duration-300">
-      <div className="max-w-300 mx-auto px-6 h-17.5 flex items-center justify-between">
+      <div className="max-w-300 mx-auto px-6 h-17.5 flex items-center justify-between gap-6">
         
         {/* Brand Logo */}
-        <Link to="/" onClick={handleNavClick} className="flex items-center gap-2">
+        <Link to="/" onClick={handleNavClick} className="flex items-center gap-2 shrink-0">
           <div className="w-9 h-9 bg-primary flex items-center justify-center rounded-xl shadow-md shadow-primary/10">
             <HeartPulse className="w-5 h-5 text-white" />
           </div>
@@ -87,7 +84,7 @@ function Navbar() {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-5 xl:gap-8">
+        <nav className="hidden xl:flex items-center gap-6 2xl:gap-8">
           {renderNavLink('/home', 'Home')}
           {renderNavLink('/doctors', 'Doctors')}
           {renderNavLink('/symptom-checker', 'Symptom Checker')}
@@ -99,7 +96,7 @@ function Navbar() {
         </nav>
 
         {/* Right Side Icons & Profile Actions */}
-        <div className="hidden lg:flex items-center gap-3 xl:gap-5">
+        <div className="hidden xl:flex items-center gap-4 shrink-0">
           {/* Theme Switcher Button */}
           <button 
             type="button" 
@@ -137,7 +134,7 @@ function Navbar() {
               
               {/* Profile Dropdown Panel */}
               {profileOpen && (
-                <div className="absolute right-0 mt-3 w-48 glass-panel rounded-2xl p-3 shadow-lg z-50 animate-fade-in">
+                <div className="absolute right-0 mt-3 w-48 bg-bg-base border border-border-color rounded-2xl p-3 shadow-lg z-50 animate-fade-in">
                   <div className="px-3 py-2 border-b border-border-color mb-2">
                     <p className="text-xs font-bold text-text-main truncate">{user.name}</p>
                     <p className="text-[10px] text-text-mute truncate mt-0.5">{user.email}</p>
@@ -172,14 +169,14 @@ function Navbar() {
               )}
             </div>
           ) : (
-            <Link to="/login" className="btn btn-primary btn-wide py-2.5 rounded-xl text-sm">
+            <Link to="/login" className="btn btn-primary px-6! py-2.5! rounded-xl text-sm! whitespace-nowrap">
               Sign In
             </Link>
           )}
         </div>
 
         {/* Mobile Header Actions Layout (Hamburger + Icons) */}
-        <div className="flex lg:hidden items-center gap-3">
+        <div className="flex xl:hidden items-center gap-3">
           {/* Mobile Theme Toggle */}
           <button 
             type="button" 
@@ -216,7 +213,7 @@ function Navbar() {
 
       {/* Mobile Drawer menu Panel (Collapses down) */}
       {isOpen && (
-        <div className="lg:hidden border-t border-border-color bg-bg-base/95 backdrop-blur-md py-4 px-6 flex flex-col gap-4 animate-fade-in shadow-lg">
+        <div className="xl:hidden border-t border-border-color bg-bg-base/95 backdrop-blur-md py-4 px-6 flex flex-col gap-4 animate-fade-in shadow-lg">
           <nav className="flex flex-col gap-4">
             {renderNavLink('/home', 'Home')}
             {renderNavLink('/doctors', 'Doctors')}

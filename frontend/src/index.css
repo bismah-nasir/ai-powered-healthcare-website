@@ -81,7 +81,7 @@
    Color Palette - Dark Theme override (Applied via prefers-color-scheme or manual class)
    -------------------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light-theme) {
     --color-primary-light: hsl(174, 75%, 15%);
     --color-secondary-light: hsl(238, 70%, 15%);
 
@@ -195,7 +195,7 @@ header {
   border-bottom: 1px solid rgba(0, 180, 162, 0.12) !important;
 }
 @media (prefers-color-scheme: dark) {
-  header {
+  :root:not(.light-theme) header {
     border-bottom: 1px solid rgba(0, 180, 162, 0.22) !important;
   }
 }
@@ -335,12 +335,12 @@ input:not([type="radio"]):not([type="checkbox"]):focus, select:focus, textarea:f
 
 /* Dark Mode Form Overrides */
 @media (prefers-color-scheme: dark) {
-  input:not([type="radio"]):not([type="checkbox"]), select, textarea {
+  :root:not(.light-theme) input:not([type="radio"]):not([type="checkbox"]), :root:not(.light-theme) select, :root:not(.light-theme) textarea {
     background-color: var(--bg-secondary) !important;
     border-color: var(--border-color) !important;
     color: var(--text-primary) !important;
   }
-  input:not([type="radio"]):not([type="checkbox"]):focus, select:focus, textarea:focus {
+  :root:not(.light-theme) input:not([type="radio"]):not([type="checkbox"]):focus, :root:not(.light-theme) select:focus, :root:not(.light-theme) textarea:focus {
     background-color: var(--bg-secondary) !important;
   }
 }

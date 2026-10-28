@@ -10,6 +10,9 @@ const generateToken = (id) => {
   });
 };
 
+// Emails are stored lowercase and trimmed, so lookups must match that format
+const normalizeEmail = (email) => email.trim().toLowerCase();
+
 /**
  * @desc    Register a new user
  * @route   POST /api/auth/signup
@@ -27,8 +30,16 @@ export const registerUser = async (req, res) => {
       });
     }
 
+    // Only accept plain strings so query operators like {"$ne": null} can't reach the database
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password format',
+      });
+    }
+
     // 2. Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: normalizeEmail(email) });
     if (userExists) {
       return res.status(400).json({
         success: false,
@@ -62,11 +73,26 @@ export const registerUser = async (req, res) => {
       });
     }
   } catch (error) {
+    // Schema rules (password length, email format, etc.) are the user's to fix
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors)[0].message,
+      });
+    }
+
+    // Unique index hit when two signups for the same email arrive together
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email address',
+      });
+    }
+
     console.error(`[Auth Controller] Register error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Server error, registration failed',
-      error: error.message,
     });
   }
 };
@@ -88,8 +114,16 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    // Only accept plain strings so query operators like {"$ne": null} can't reach the database
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password format',
+      });
+    }
+
     // 2. Fetch user and explicitly select password field
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: normalizeEmail(email) }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -121,7 +155,6 @@ export const loginUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error, login failed',
-      error: error.message,
     });
   }
 };
@@ -171,14 +204,14 @@ export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return res.status(400).json({
         success: false,
         message: 'Please provide email address',
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizeEmail(email) });
     if (!user) {
       return res.status(404).json({
         success: false,

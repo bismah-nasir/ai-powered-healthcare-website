@@ -1,5 +1,8 @@
+import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Medicine from '../models/Medicine.js';
+
+const PAYMENT_METHODS = ['COD', 'Card'];
 
 /**
  * @desc    Create a new medicine order (Checkout)
@@ -10,11 +13,50 @@ export const createOrder = async (req, res) => {
   const { items, shippingAddress, contactPhone, paymentMethod } = req.body;
 
   try {
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'No items in cart to checkout',
       });
+    }
+
+    if (typeof shippingAddress !== 'string' || !shippingAddress.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a shipping address',
+      });
+    }
+
+    if (typeof contactPhone !== 'string' || !contactPhone.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a contact phone number',
+      });
+    }
+
+    // Payment method is optional (schema defaults to COD) but must be valid if sent
+    if (paymentMethod !== undefined && !PAYMENT_METHODS.includes(paymentMethod)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid payment method. Choose one of: ${PAYMENT_METHODS.join(', ')}`,
+      });
+    }
+
+    // Reject malformed items before touching the database
+    for (const item of items) {
+      if (!item || !mongoose.isValidObjectId(item._id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid item in cart. Please remove it and try again.',
+        });
+      }
+
+      if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+        return res.status(400).json({
+          success: false,
+          message: `Quantity for ${item.name || 'an item'} must be a whole number of at least 1`,
+        });
+      }
     }
 
     const orderItems = [];
@@ -81,6 +123,14 @@ export const createOrder = async (req, res) => {
       data: order,
     });
   } catch (error) {
+    // Safety net for any schema rule not covered by the checks above
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors)[0].message,
+      });
+    }
+
     console.error(`[Order Controller] Checkout error: ${error.message}`);
     res.status(500).json({
       success: false,

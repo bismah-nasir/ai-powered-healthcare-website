@@ -1,4 +1,5 @@
 import Medicine from '../models/Medicine.js';
+import escapeRegex from '../utils/escapeRegex.js';
 
 /**
  * @desc    Get all medicines (supports filtering, search)
@@ -18,9 +19,10 @@ export const getMedicines = async (req, res) => {
 
     // 2. Search filter (text index query or case-insensitive regex name match)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { activeIngredients: { $regex: search, $options: 'i' } },
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { activeIngredients: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 

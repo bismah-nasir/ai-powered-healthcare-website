@@ -1,4 +1,5 @@
 import Emergency from '../models/Emergency.js';
+import escapeRegex from '../utils/escapeRegex.js';
 
 /**
  * @desc    Get all emergency services (supports filtering, search)
@@ -18,10 +19,11 @@ export const getEmergencies = async (req, res) => {
 
     // 2. Search filter (regex name, address, or city match)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { address: { $regex: search, $options: 'i' } },
-        { city: { $regex: search, $options: 'i' } },
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { address: { $regex: safeSearch, $options: 'i' } },
+        { city: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 

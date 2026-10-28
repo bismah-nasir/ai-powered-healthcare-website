@@ -1,4 +1,5 @@
 import LabTest from '../models/LabTest.js';
+import escapeRegex from '../utils/escapeRegex.js';
 
 /**
  * @desc    Get all lab tests (supports filtering, search)
@@ -18,9 +19,10 @@ export const getLabTests = async (req, res) => {
 
     // 2. Search filter (regex name/description match)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { description: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 

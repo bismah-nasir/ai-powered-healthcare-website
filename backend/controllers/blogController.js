@@ -1,4 +1,5 @@
 import Blog from '../models/Blog.js';
+import escapeRegex from '../utils/escapeRegex.js';
 
 /**
  * @desc    Get all blog articles (supports filtering, search)
@@ -23,10 +24,11 @@ export const getBlogs = async (req, res) => {
 
     // 3. Search filter (regex title, content, or tag match)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } },
+        { title: { $regex: safeSearch, $options: 'i' } },
+        { content: { $regex: safeSearch, $options: 'i' } },
+        { tags: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 

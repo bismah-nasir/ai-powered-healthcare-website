@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, User, Tag, FileText, Send, CheckCircle, AlertTriangle } from 'lucide-react';
 
 function Contact() {

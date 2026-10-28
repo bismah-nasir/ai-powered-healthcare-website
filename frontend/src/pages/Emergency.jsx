@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Phone, MapPin, AlertCircle, Clock, ShieldAlert, CheckCircle, HeartPulse, Building, Droplets } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Phone, MapPin, AlertCircle, ShieldAlert, HeartPulse, Building, Droplets } from 'lucide-react';
 
 const CATEGORIES = [
   'All',

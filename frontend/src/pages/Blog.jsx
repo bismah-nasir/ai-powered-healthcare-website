@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Clock, User, ArrowRight, X, AlertCircle, HeartPulse, Tag } from 'lucide-react';
 
 const CATEGORIES = [

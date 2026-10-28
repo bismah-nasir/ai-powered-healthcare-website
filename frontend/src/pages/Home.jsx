@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  HeartPulse, Calendar, Pill, ShoppingBag, ShieldAlert, 
+import {
+  Calendar, Pill, ShieldAlert,
   Search, ArrowRight, UserCheck, Activity, Award, ShieldCheck, Heart, Clock
 } from 'lucide-react';
 
@@ -30,9 +30,9 @@ const HEALTH_TIPS = [
 
 // Dynamic Count Up Timer component using requestAnimationFrame (60fps hardware-accelerated)
 function AnimatedCounter({ value, duration = 1500, suffix = "" }) {
-  const [count, setCount] = React.useState(0);
+  const [count, setCount] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let startTime = null;
     const animate = (timestamp) => {
       if (!startTime) startTime = timestamp;

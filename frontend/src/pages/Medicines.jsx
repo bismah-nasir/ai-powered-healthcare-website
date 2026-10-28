@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, ShoppingCart, AlertTriangle, Check, Info, ShieldAlert, HeartPulse } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, ShoppingCart, AlertTriangle, Check, ShieldAlert, HeartPulse } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 const CATEGORIES = [

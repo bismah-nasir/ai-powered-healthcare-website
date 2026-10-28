@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { HeartPulse, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
@@ -38,7 +38,7 @@ function Login() {
       } else {
         setError(result.message || 'Login failed. Please check your credentials.');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to connect to server. Please try again.');
     } finally {
       setLoading(false);

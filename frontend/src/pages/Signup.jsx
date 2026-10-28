@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { HeartPulse, User, Mail, Lock, Phone, ArrowLeft } from 'lucide-react';
@@ -54,7 +54,7 @@ function Signup() {
       } else {
         setError(result.message || 'Registration failed. Try again.');
       }
-    } catch (err) {
+    } catch {
       setError('Server connection failed. Please try again.');
     } finally {
       setLoading(false);

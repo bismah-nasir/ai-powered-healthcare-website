@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Medicine from '../models/Medicine.js';
 import escapeRegex from '../utils/escapeRegex.js';
 
@@ -49,8 +50,11 @@ export const getMedicines = async (req, res) => {
  */
 export const getMedicineById = async (req, res) => {
   try {
-    const medicine = await Medicine.findById(req.params.id);
-    
+    // Malformed IDs count as not found
+    const medicine = mongoose.isValidObjectId(req.params.id)
+      ? await Medicine.findById(req.params.id)
+      : null;
+
     if (!medicine) {
       return res.status(404).json({
         success: false,
@@ -66,7 +70,7 @@ export const getMedicineById = async (req, res) => {
     console.error(`[Medicine Controller] ID lookup error: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: 'Server error, invalid medicine ID format',
+      message: 'Server error, could not load medicine details',
     });
   }
 };

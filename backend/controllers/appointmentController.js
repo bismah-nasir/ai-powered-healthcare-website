@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Appointment from '../models/Appointment.js';
 import Doctor from '../models/Doctor.js';
 
@@ -18,8 +19,8 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
-    // 2. Fetch the target doctor and verify their profile exists
-    const doctor = await Doctor.findById(doctorId);
+    // 2. Fetch the target doctor and verify their profile exists (malformed IDs count as not found)
+    const doctor = mongoose.isValidObjectId(doctorId) ? await Doctor.findById(doctorId) : null;
     if (!doctor) {
       return res.status(404).json({
         success: false,
@@ -28,7 +29,7 @@ export const bookAppointment = async (req, res) => {
     }
 
     // 3. Locate the slot inside the doctor's availableSlots array
-    const slot = doctor.availableSlots.id(slotId);
+    const slot = mongoose.isValidObjectId(slotId) ? doctor.availableSlots.id(slotId) : null;
     if (!slot) {
       return res.status(404).json({
         success: false,
@@ -125,8 +126,10 @@ export const getMyAppointments = async (req, res) => {
  */
 export const cancelAppointment = async (req, res) => {
   try {
-    // 1. Fetch appointment and verify it exists
-    const appointment = await Appointment.findById(req.params.id);
+    // 1. Fetch appointment and verify it exists (malformed IDs count as not found)
+    const appointment = mongoose.isValidObjectId(req.params.id)
+      ? await Appointment.findById(req.params.id)
+      : null;
     if (!appointment) {
       return res.status(404).json({
         success: false,

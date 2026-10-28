@@ -20,6 +20,7 @@ import Blog from './pages/Blog';
 import Contact from './pages/Contact';
 import AdminDashboard from './pages/AdminDashboard';
 import Cart from './pages/Cart';
+import SymptomChecker from './pages/SymptomChecker';
 
 import Layout from './components/layout/Layout';
 import PageTransition from './components/layout/PageTransition';
@@ -50,6 +51,7 @@ function AnimatedRoutes() {
           <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
           <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
           <Route path="/cart" element={<PageTransition><Cart /></PageTransition>} />
+          <Route path="/symptom-checker" element={<PageTransition><SymptomChecker /></PageTransition>} />
         </Route>
       </Routes>
     </AnimatePresence>

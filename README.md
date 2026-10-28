@@ -6,6 +6,7 @@ PulseCare is a responsive, secure, and modern healthcare management web applicat
 
 ## 🚀 Key Features
 
+*   **AI Symptom Checker (Gemini)**: Describe symptoms in plain language and get an urgency level (Emergency / Urgent / Routine / Self-Care), the matching clinical department, safe self-care tips, warning signs, and top-rated doctors from that department with one-click booking. Emergency keywords (chest pain, stroke signs, breathing difficulty, etc.) always escalate to the Emergency directory, even if the AI is unavailable.
 *   **Specialist Consultations**: Browse certified medical practitioners, filter by departments (Cardiology, Pediatrics, Neurology, etc.), view live slots availability, and book digital appointments.
 *   **Online Pharmacy Store**: Purchase prescription and over-the-counter wellness medications. Integrates real-time stock deductions and client-side prescription requirement alerts (Rx).
 *   **At-Home Diagnostics Labs**: Schedule blood profile screenings and general checks. Access clear preparation guides, turnaround times (TAT), and fasting requirements.
@@ -32,7 +33,7 @@ PulseCare features a custom visual system built using **Tailwind CSS v4** and **
 ## 🛠️ Technology Stack
 
 *   **Frontend**: React 19 (Vite), Tailwind CSS v4, Framer Motion, Lucide React, React Router 7.
-*   **Backend**: Node.js, Express, Mongoose, JSONWebTokens, Bcrypt.js, Node Mailer.
+*   **Backend**: Node.js, Express, Mongoose, Google Gen AI SDK (Gemini), JSONWebTokens, Bcrypt.js, Node Mailer.
 *   **Database**: MongoDB Atlas.
 
 ---
@@ -50,7 +51,12 @@ PulseCare features a custom visual system built using **Tailwind CSS v4** and **
     PORT=5000
     MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/pulsecare_db?retryWrites=true&w=majority
     JWT_SECRET=your_custom_secure_jwt_secret_key_here
+    GEMINI_API_KEY=your_google_ai_studio_api_key_here
+    # Primary model, and the backup used if the primary is unavailable or rate limited
+    GEMINI_MODEL=gemini-3.5-flash-lite
+    GEMINI_FALLBACK_MODEL=gemini-3.1-flash-lite
     ```
+3.  Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey). Without it, the rest of the app works normally and the Symptom Checker returns a "not configured" message. The `/api/triage` endpoint is limited to 5 requests per minute per IP to stay within Gemini free-tier quotas.
 
 ### 2. Run the Backend Server
 ```bash

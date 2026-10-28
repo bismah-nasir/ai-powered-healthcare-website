@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const CartContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is kept next to its provider
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {

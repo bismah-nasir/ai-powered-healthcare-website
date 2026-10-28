@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -8,6 +8,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Logout handler
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+  };
 
   // Sync token and user profile on load
   useEffect(() => {
@@ -108,13 +115,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout handler
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-  };
-
   return (
     <AuthContext.Provider value={{ user, token, loading, login, signup, logout }}>
       {children}
@@ -123,6 +123,7 @@ export const AuthProvider = ({ children }) => {
 };
 
 // Custom hook for simple context consumption
+// eslint-disable-next-line react-refresh/only-export-components -- hook is kept next to its provider
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

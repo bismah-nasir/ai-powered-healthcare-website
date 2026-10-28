@@ -86,9 +86,9 @@ function Splash() {
           <div className="w-full max-w-md flex flex-col items-center gap-8 animate-fade-in z-10">
             
             {/* Top Section: Branding Header (Visual Continuity) */}
-            <div className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-primary flex items-center justify-center rounded-2xl shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform duration-300">
-                <HeartPulse className="w-6 h-6 text-white group-hover:animate-pulse" />
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary flex items-center justify-center rounded-2xl shadow-lg shadow-primary/20">
+                <HeartPulse className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-text-main font-headings">

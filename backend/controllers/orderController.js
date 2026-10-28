@@ -4,13 +4,50 @@ import Medicine from '../models/Medicine.js';
 
 const PAYMENT_METHODS = ['COD', 'Card'];
 
-// Adds reserved quantities back to stock when checkout fails partway
+// Adds item quantities back to stock (failed checkout, or order cancelled)
 const restoreStock = (reservedItems) =>
   Promise.all(
     reservedItems.map((item) =>
       Medicine.updateOne({ _id: item.medicine }, { $inc: { stock: item.quantity } })
     )
   );
+
+// Deducts stock atomically: each update only succeeds if enough stock remains,
+// so simultaneous requests cannot both take the last units. Deducted items are
+// pushed onto `reserved`. If any item falls short, everything reserved so far is
+// given back and an INSUFFICIENT_STOCK response body is returned (null on success).
+const reserveStock = async (items, reserved) => {
+  for (const item of items) {
+    const updated = await Medicine.findOneAndUpdate(
+      { _id: item.medicine, stock: { $gte: item.quantity } },
+      { $inc: { stock: -item.quantity } },
+      { new: true }
+    );
+
+    if (!updated) {
+      await restoreStock(reserved);
+      reserved.length = 0;
+      const current = await Medicine.findById(item.medicine).select('stock');
+      const available = current ? current.stock : 0;
+      // Structured details let the frontend highlight the item and offer to adjust it
+      return {
+        success: false,
+        code: 'INSUFFICIENT_STOCK',
+        message: `Insufficient stock for ${item.name}. Only ${available} units available.`,
+        item: {
+          medicineId: String(item.medicine),
+          name: item.name,
+          requested: item.quantity,
+          available,
+        },
+      };
+    }
+
+    reserved.push(item);
+  }
+
+  return null;
+};
 
 /**
  * @desc    Create a new medicine order (Checkout)
@@ -107,35 +144,10 @@ export const createOrder = async (req, res) => {
       calculatedSubtotal += med.price * item.quantity;
     }
 
-    // 2. Reserve stock atomically: each update only succeeds if enough stock remains,
-    // so simultaneous orders cannot both take the last units
-    for (const item of orderItems) {
-      const updated = await Medicine.findOneAndUpdate(
-        { _id: item.medicine, stock: { $gte: item.quantity } },
-        { $inc: { stock: -item.quantity } },
-        { new: true }
-      );
-
-      if (!updated) {
-        await restoreStock(reserved);
-        reserved.length = 0;
-        const current = await Medicine.findById(item.medicine).select('stock');
-        const available = current ? current.stock : 0;
-        // Structured details let the frontend highlight the item and offer to adjust it
-        return res.status(400).json({
-          success: false,
-          code: 'INSUFFICIENT_STOCK',
-          message: `Insufficient stock for ${item.name}. Only ${available} units available.`,
-          item: {
-            medicineId: String(item.medicine),
-            name: item.name,
-            requested: item.quantity,
-            available,
-          },
-        });
-      }
-
-      reserved.push(item);
+    // 2. Reserve stock atomically
+    const stockError = await reserveStock(orderItems, reserved);
+    if (stockError) {
+      return res.status(400).json(stockError);
     }
 
     // 3. Billing calculations
@@ -241,6 +253,7 @@ export const getAllOrders = async (req, res) => {
  */
 export const updateOrderStatus = async (req, res) => {
   const { status } = req.body;
+  const reserved = []; // Stock taken back when reopening a cancelled order
 
   try {
     const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -251,7 +264,9 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    const order = await Order.findById(req.params.id);
+    const order = mongoose.isValidObjectId(req.params.id)
+      ? await Order.findById(req.params.id)
+      : null;
 
     if (!order) {
       return res.status(404).json({
@@ -260,24 +275,55 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Revert stock if order is cancelled
-    if (status === 'cancelled' && order.status !== 'cancelled') {
-      for (const item of order.items) {
-        await Medicine.findByIdAndUpdate(item.medicine, {
-          $inc: { stock: item.quantity },
+    const wasCancelled = order.status === 'cancelled';
+    const isCancelling = !wasCancelled && status === 'cancelled';
+    const isReopening = wasCancelled && status !== 'cancelled';
+
+    // Reopening a cancelled order takes its stock again, if still available
+    if (isReopening) {
+      const stockError = await reserveStock(order.items, reserved);
+      if (stockError) {
+        return res.status(400).json({
+          ...stockError,
+          message: `Cannot reopen order. ${stockError.message}`,
         });
       }
     }
 
-    order.status = status;
-    await order.save();
+    // Only switch status if nobody changed it since we read it, so two admins
+    // acting at once cannot return or deduct the same stock twice
+    const updatedOrder = await Order.findOneAndUpdate(
+      { _id: order._id, status: order.status },
+      { status },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedOrder) {
+      await restoreStock(reserved);
+      return res.status(409).json({
+        success: false,
+        message: 'This order was just updated by someone else. Please refresh and try again.',
+      });
+    }
+    reserved.length = 0; // Status saved, stock deduction is now final
+
+    // Return stock to inventory when an order is cancelled
+    if (isCancelling) {
+      await restoreStock(order.items);
+    }
 
     res.status(200).json({
       success: true,
       message: 'Order status updated successfully',
-      data: order,
+      data: updatedOrder,
     });
   } catch (error) {
+    try {
+      await restoreStock(reserved);
+    } catch (restoreError) {
+      console.error(`[Order Controller] Stock restore failed: ${restoreError.message}`);
+    }
+
     console.error(`[Order Controller] Update status error: ${error.message}`);
     res.status(500).json({
       success: false,

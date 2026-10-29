@@ -12,9 +12,12 @@ function Cart() {
   const { 
     cartItems, 
     updateQuantity, 
-    removeFromCart, 
-    clearCart, 
-    cartSubtotal 
+    removeFromCart,
+    syncItemStock,
+    clearCart,
+    cartSubtotal,
+    showNotice,
+    dismissNotice
   } = useCart();
 
   // Shipping & Checkout form states
@@ -27,12 +30,63 @@ function Cart() {
   const [orderReceipt, setOrderReceipt] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
+  // Cart item flagged by a checkout error: { id, reason: 'stock' | 'missing', available }
+  const [flaggedItem, setFlaggedItem] = useState(null);
+
   // Constants
   const DELIVERY_FEE = cartSubtotal > 1500 ? 0 : 150; // Free delivery for orders above Rs 1500
   const orderTotal = cartSubtotal + DELIVERY_FEE;
 
   // Check if any cart item requires a prescription (Rx Required)
   const requiresPrescription = cartItems.some((item) => item.requiresPrescription);
+
+  const handleRemoveItem = (itemId) => {
+    removeFromCart(itemId);
+    if (flaggedItem?.id === itemId) setFlaggedItem(null);
+  };
+
+  const flagCartItem = (itemId, reason, available) => {
+    setFlaggedItem({ id: itemId, reason, available });
+    document.getElementById(`cart-item-${itemId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  // Map structured order errors to an in-app alert with fix-up actions
+  const handleCheckoutError = (data) => {
+    const message = data.message || 'Checkout failed. Please review your order.';
+    const errorItem = data.item;
+    const inCart = errorItem && cartItems.some((item) => item._id === errorItem.medicineId);
+
+    if (data.code === 'INSUFFICIENT_STOCK' && inCart) {
+      const { medicineId, available } = errorItem;
+      syncItemStock(medicineId, available);
+      flagCartItem(medicineId, 'stock', available);
+
+      const action = available > 0
+        ? {
+            label: `Set quantity to ${available}`,
+            onClick: () => {
+              updateQuantity(medicineId, available);
+              setFlaggedItem(null);
+            },
+          }
+        : { label: 'Remove from cart', onClick: () => handleRemoveItem(medicineId) };
+
+      showNotice({ message, tone: 'warning', actions: [action] });
+      return;
+    }
+
+    if (data.code === 'ITEM_NOT_FOUND' && inCart) {
+      flagCartItem(errorItem.medicineId, 'missing');
+      showNotice({
+        message,
+        tone: 'danger',
+        actions: [{ label: 'Remove from cart', onClick: () => handleRemoveItem(errorItem.medicineId) }],
+      });
+      return;
+    }
+
+    showNotice({ message, tone: 'danger' });
+  };
 
   const handleCheckoutSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -45,6 +99,8 @@ function Cart() {
     }
 
     setCheckoutLoading(true);
+    setFlaggedItem(null);
+    dismissNotice();
 
     try {
       const token = localStorage.getItem('token');
@@ -82,11 +138,11 @@ function Cart() {
         setCheckoutSuccess(true);
         clearCart(); // Reset cart on successful checkout
       } else {
-        alert(data.message || 'Checkout failed. Please review your order.');
+        handleCheckoutError(data);
       }
     } catch (error) {
       console.error('[Checkout Form] Connection Error:', error.message);
-      alert('Failed to connect to the server. Please ensure the backend is running.');
+      showNotice({ message: 'Failed to connect to the server. Please ensure the backend is running.', tone: 'danger' });
     } finally {
       setCheckoutLoading(false);
     }
@@ -159,11 +215,21 @@ function Cart() {
               <h3 className="text-sm font-bold text-text-main tracking-wider uppercase font-headings mb-2">Selected Items</h3>
               
               <div className="flex flex-col">
-                {cartItems.map((item, idx) => (
-                  <div 
-                    key={item._id} 
+                {cartItems.map((item, idx) => {
+                  // A stock flag clears once the quantity is back within the available stock
+                  const flag = flaggedItem?.id === item._id
+                    && (flaggedItem.reason === 'missing' || item.quantity > item.stock)
+                    ? flaggedItem
+                    : null;
+
+                  return (
+                  <div
+                    key={item._id}
+                    id={`cart-item-${item._id}`}
                     style={{ animationDelay: `${(idx % 6) * 75}ms` }}
-                    className="flex gap-4 py-4 border-b border-border-color/20 last:border-b-0 items-start justify-between animate-slide-up"
+                    className={`flex gap-4 py-4 border-b border-border-color/20 last:border-b-0 items-start justify-between animate-slide-up transition-colors ${
+                      flag ? 'bg-danger/5 ring-1 ring-danger/40 rounded-2xl px-3 -mx-3' : ''
+                    }`}
                   >
                     
                     {/* Item Thumbnail */}
@@ -189,13 +255,23 @@ function Cart() {
                         <span className="text-xs font-bold text-text-main">Rs {item.price}</span>
                         <span className="text-[10px] text-text-mute font-body">x {item.quantity}</span>
                       </div>
+
+                      {flag && (
+                        <p className="text-[10px] font-bold text-danger font-body mt-1.5">
+                          {flag.reason === 'missing'
+                            ? 'No longer available in the catalog'
+                            : flag.available > 0
+                              ? `Only ${flag.available} available`
+                              : 'Out of stock'}
+                        </p>
+                      )}
                     </div>
 
                     {/* Item Actions (Quantity controllers + Remove) */}
                     <div className="flex flex-col items-end gap-3 justify-between self-stretch shrink-0">
                       <button 
                         type="button" 
-                        onClick={() => removeFromCart(item._id)}
+                        onClick={() => handleRemoveItem(item._id)}
                         className="text-text-mute hover:text-danger bg-transparent border-0 cursor-pointer p-1 rounded transition-colors"
                         aria-label="Remove item"
                       >
@@ -223,7 +299,8 @@ function Cart() {
                     </div>
 
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

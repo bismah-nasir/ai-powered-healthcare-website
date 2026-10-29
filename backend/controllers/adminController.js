@@ -96,7 +96,7 @@ export const updateTicketStatus = async (req, res) => {
       ? await Contact.findByIdAndUpdate(
           req.params.id,
           { status },
-          { new: true, runValidators: true }
+          { returnDocument: 'after', runValidators: true }
         )
       : null;
 

@@ -21,7 +21,7 @@ const reserveStock = async (items, reserved) => {
     const updated = await Medicine.findOneAndUpdate(
       { _id: item.medicine, stock: { $gte: item.quantity } },
       { $inc: { stock: -item.quantity } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updated) {
@@ -295,7 +295,7 @@ export const updateOrderStatus = async (req, res) => {
     const updatedOrder = await Order.findOneAndUpdate(
       { _id: order._id, status: order.status },
       { status },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!updatedOrder) {

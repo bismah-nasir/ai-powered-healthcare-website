@@ -56,7 +56,7 @@ export const bookAppointment = async (req, res) => {
       {
         $set: { 'availableSlots.$.isBooked': true },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedDoctor) {
@@ -166,7 +166,7 @@ export const cancelAppointment = async (req, res) => {
     const cancelled = await Appointment.findOneAndUpdate(
       { _id: appointment._id, status: { $in: ['pending', 'confirmed'] } },
       { status: 'cancelled' },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!cancelled) {

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import emailRegex from '../utils/emailRegex.js';
 
 const contactSchema = new mongoose.Schema(
   {
@@ -15,7 +16,7 @@ const contactSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+        emailRegex,
         'Please provide a valid email address',
       ],
     },

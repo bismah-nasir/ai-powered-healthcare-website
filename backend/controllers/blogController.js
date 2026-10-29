@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import Blog from '../models/Blog.js';
+import escapeRegex from '../utils/escapeRegex.js';
 
 /**
  * @desc    Get all blog articles (supports filtering, search)
@@ -23,10 +25,11 @@ export const getBlogs = async (req, res) => {
 
     // 3. Search filter (regex title, content, or tag match)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } },
+        { title: { $regex: safeSearch, $options: 'i' } },
+        { content: { $regex: safeSearch, $options: 'i' } },
+        { tags: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 
@@ -54,8 +57,11 @@ export const getBlogs = async (req, res) => {
  */
 export const getBlogById = async (req, res) => {
   try {
-    const blog = await Blog.findById(req.params.id);
-    
+    // Malformed IDs count as not found
+    const blog = mongoose.isValidObjectId(req.params.id)
+      ? await Blog.findById(req.params.id)
+      : null;
+
     if (!blog) {
       return res.status(404).json({
         success: false,
@@ -71,7 +77,7 @@ export const getBlogById = async (req, res) => {
     console.error(`[Blog Controller] ID lookup error: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: 'Server error, invalid blog ID format',
+      message: 'Server error, could not load blog article',
     });
   }
 };

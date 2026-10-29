@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import Medicine from '../models/Medicine.js';
+import escapeRegex from '../utils/escapeRegex.js';
 
 /**
  * @desc    Get all medicines (supports filtering, search)
@@ -18,9 +20,10 @@ export const getMedicines = async (req, res) => {
 
     // 2. Search filter (text index query or case-insensitive regex name match)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { activeIngredients: { $regex: search, $options: 'i' } },
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { activeIngredients: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 
@@ -47,8 +50,11 @@ export const getMedicines = async (req, res) => {
  */
 export const getMedicineById = async (req, res) => {
   try {
-    const medicine = await Medicine.findById(req.params.id);
-    
+    // Malformed IDs count as not found
+    const medicine = mongoose.isValidObjectId(req.params.id)
+      ? await Medicine.findById(req.params.id)
+      : null;
+
     if (!medicine) {
       return res.status(404).json({
         success: false,
@@ -64,7 +70,7 @@ export const getMedicineById = async (req, res) => {
     console.error(`[Medicine Controller] ID lookup error: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: 'Server error, invalid medicine ID format',
+      message: 'Server error, could not load medicine details',
     });
   }
 };

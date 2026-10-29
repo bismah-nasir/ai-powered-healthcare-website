@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import LabTest from '../models/LabTest.js';
+import escapeRegex from '../utils/escapeRegex.js';
 
 /**
  * @desc    Get all lab tests (supports filtering, search)
@@ -18,9 +20,10 @@ export const getLabTests = async (req, res) => {
 
     // 2. Search filter (regex name/description match)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { description: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 
@@ -47,8 +50,11 @@ export const getLabTests = async (req, res) => {
  */
 export const getLabTestById = async (req, res) => {
   try {
-    const labTest = await LabTest.findById(req.params.id);
-    
+    // Malformed IDs count as not found
+    const labTest = mongoose.isValidObjectId(req.params.id)
+      ? await LabTest.findById(req.params.id)
+      : null;
+
     if (!labTest) {
       return res.status(404).json({
         success: false,
@@ -64,7 +70,7 @@ export const getLabTestById = async (req, res) => {
     console.error(`[LabTest Controller] ID lookup error: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: 'Server error, invalid lab test ID format',
+      message: 'Server error, could not load lab test details',
     });
   }
 };

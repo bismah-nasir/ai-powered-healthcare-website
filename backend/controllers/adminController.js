@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import Appointment from '../models/Appointment.js';
@@ -90,11 +91,14 @@ export const updateTicketStatus = async (req, res) => {
       });
     }
 
-    const ticket = await Contact.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true, runValidators: true }
-    );
+    // Malformed IDs count as not found
+    const ticket = mongoose.isValidObjectId(req.params.id)
+      ? await Contact.findByIdAndUpdate(
+          req.params.id,
+          { status },
+          { returnDocument: 'after', runValidators: true }
+        )
+      : null;
 
     if (!ticket) {
       return res.status(404).json({

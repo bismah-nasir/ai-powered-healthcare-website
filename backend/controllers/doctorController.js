@@ -1,4 +1,5 @@
 import Doctor from '../models/Doctor.js';
+import escapeRegex from '../utils/escapeRegex.js';
 
 /**
  * @desc    Get all doctors (with search and department filters)
@@ -18,9 +19,10 @@ export const getDoctors = async (req, res) => {
 
     // 2. Apply Search Filter (matches doctor name or specialization via regex)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { specialization: { $regex: search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { specialization: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 

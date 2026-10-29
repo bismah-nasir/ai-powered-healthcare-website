@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Appointment from '../models/Appointment.js';
 import Doctor from '../models/Doctor.js';
 
@@ -18,8 +19,8 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
-    // 2. Fetch the target doctor and verify their profile exists
-    const doctor = await Doctor.findById(doctorId);
+    // 2. Fetch the target doctor and verify their profile exists (malformed IDs count as not found)
+    const doctor = mongoose.isValidObjectId(doctorId) ? await Doctor.findById(doctorId) : null;
     if (!doctor) {
       return res.status(404).json({
         success: false,
@@ -28,7 +29,7 @@ export const bookAppointment = async (req, res) => {
     }
 
     // 3. Locate the slot inside the doctor's availableSlots array
-    const slot = doctor.availableSlots.id(slotId);
+    const slot = mongoose.isValidObjectId(slotId) ? doctor.availableSlots.id(slotId) : null;
     if (!slot) {
       return res.status(404).json({
         success: false,
@@ -45,17 +46,17 @@ export const bookAppointment = async (req, res) => {
     }
 
     // 5. ATOMIC UPDATE: Mark slot as booked inside Doctor document
-    // We query with the condition that isBooked is still false to prevent concurrency race conditions
+    // We query with the condition that isBooked is still false to prevent concurrency race conditions.
+    // $elemMatch makes both conditions apply to the same slot, so $ points at that slot.
     const updatedDoctor = await Doctor.findOneAndUpdate(
       {
         _id: doctorId,
-        'availableSlots._id': slotId,
-        'availableSlots.isBooked': false, // Concurrency guard
+        availableSlots: { $elemMatch: { _id: slotId, isBooked: false } }, // Concurrency guard
       },
       {
         $set: { 'availableSlots.$.isBooked': true },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedDoctor) {
@@ -125,8 +126,10 @@ export const getMyAppointments = async (req, res) => {
  */
 export const cancelAppointment = async (req, res) => {
   try {
-    // 1. Fetch appointment and verify it exists
-    const appointment = await Appointment.findById(req.params.id);
+    // 1. Fetch appointment and verify it exists (malformed IDs count as not found)
+    const appointment = mongoose.isValidObjectId(req.params.id)
+      ? await Appointment.findById(req.params.id)
+      : null;
     if (!appointment) {
       return res.status(404).json({
         success: false,
@@ -135,14 +138,15 @@ export const cancelAppointment = async (req, res) => {
     }
 
     // 2. Security Check: Verify user owns this appointment
+    // (403: the user is logged in, just not allowed to touch someone else's booking)
     if (appointment.patient.toString() !== req.user.id) {
-      return res.status(401).json({
+      return res.status(403).json({
         success: false,
         message: 'Not authorized to modify this appointment',
       });
     }
 
-    // 3. Verify it is not already cancelled
+    // 3. Only upcoming appointments can be cancelled
     if (appointment.status === 'cancelled') {
       return res.status(400).json({
         success: false,
@@ -150,9 +154,27 @@ export const cancelAppointment = async (req, res) => {
       });
     }
 
-    // 4. Update appointment status to cancelled
-    appointment.status = 'cancelled';
-    await appointment.save();
+    if (appointment.status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Completed appointments cannot be cancelled',
+      });
+    }
+
+    // 4. Update status only if it is still cancellable, so a repeated cancel request
+    // can't unlock the slot again after someone else has booked it
+    const cancelled = await Appointment.findOneAndUpdate(
+      { _id: appointment._id, status: { $in: ['pending', 'confirmed'] } },
+      { status: 'cancelled' },
+      { returnDocument: 'after' }
+    );
+
+    if (!cancelled) {
+      return res.status(409).json({
+        success: false,
+        message: 'This appointment was just updated. Please refresh and try again.',
+      });
+    }
 
     // 5. Unlock the slot in the Doctor document
     await Doctor.findOneAndUpdate(
@@ -168,7 +190,7 @@ export const cancelAppointment = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Appointment cancelled successfully!',
-      data: appointment,
+      data: cancelled,
     });
   } catch (error) {
     console.error(`[Appointment Controller] Cancellation error: ${error.message}`);

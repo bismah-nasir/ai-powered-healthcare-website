@@ -10,6 +10,9 @@ const generateToken = (id) => {
   });
 };
 
+// Emails are stored lowercase and trimmed, so lookups must match that format
+const normalizeEmail = (email) => email.trim().toLowerCase();
+
 /**
  * @desc    Register a new user
  * @route   POST /api/auth/signup
@@ -27,8 +30,16 @@ export const registerUser = async (req, res) => {
       });
     }
 
+    // Only accept plain strings so query operators like {"$ne": null} can't reach the database
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password format',
+      });
+    }
+
     // 2. Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: normalizeEmail(email) });
     if (userExists) {
       return res.status(400).json({
         success: false,
@@ -62,11 +73,26 @@ export const registerUser = async (req, res) => {
       });
     }
   } catch (error) {
+    // Schema rules (password length, email format, etc.) are the user's to fix
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors)[0].message,
+      });
+    }
+
+    // Unique index hit when two signups for the same email arrive together
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email address',
+      });
+    }
+
     console.error(`[Auth Controller] Register error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Server error, registration failed',
-      error: error.message,
     });
   }
 };
@@ -88,8 +114,16 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    // Only accept plain strings so query operators like {"$ne": null} can't reach the database
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password format',
+      });
+    }
+
     // 2. Fetch user and explicitly select password field
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: normalizeEmail(email) }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -121,7 +155,6 @@ export const loginUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error, login failed',
-      error: error.message,
     });
   }
 };
@@ -171,19 +204,23 @@ export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return res.status(400).json({
         success: false,
         message: 'Please provide email address',
       });
     }
 
-    const user = await User.findOne({ email });
+    // Same reply whether or not the account exists, so this endpoint can't be used
+    // to discover which emails are registered
+    const genericReply = {
+      success: true,
+      message: 'If an account exists for this email, a password reset link has been sent.',
+    };
+
+    const user = await User.findOne({ email: normalizeEmail(email) });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'No account registered with this email address',
-      });
+      return res.status(200).json(genericReply);
     }
 
     // 1. Generate password reset token
@@ -199,7 +236,8 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     // 3. Create reset URL pointing to frontend router page
-    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const resetUrl = `${clientUrl}/reset-password/${resetToken}`;
 
     // 4. Draft email HTML template
     const message = `
@@ -218,17 +256,15 @@ export const forgotPassword = async (req, res) => {
     `;
 
     try {
-      const info = await sendEmail({
+      // Ethereal preview URL (dev without SMTP) is logged by sendEmail, not returned,
+      // since its presence would reveal that the account exists
+      await sendEmail({
         email: user.email,
         subject: 'PulseCare AI - Password Reset Request',
         message,
       });
 
-      res.status(200).json({
-        success: true,
-        message: `Password reset instructions sent to ${email}.`,
-        previewUrl: info.previewUrl || null, // returns Ethereal URL if dynamically generated
-      });
+      res.status(200).json(genericReply);
     } catch (mailError) {
       console.error(`[Auth Controller] Email send failed: ${mailError.message}`);
       // Clear token columns if email send fails
@@ -259,10 +295,17 @@ export const resetPassword = async (req, res) => {
   const { password } = req.body;
 
   try {
-    if (!password) {
+    if (!password || typeof password !== 'string') {
       return res.status(400).json({
         success: false,
         message: 'Please provide new password',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long',
       });
     }
 

@@ -46,12 +46,12 @@ export const bookAppointment = async (req, res) => {
     }
 
     // 5. ATOMIC UPDATE: Mark slot as booked inside Doctor document
-    // We query with the condition that isBooked is still false to prevent concurrency race conditions
+    // We query with the condition that isBooked is still false to prevent concurrency race conditions.
+    // $elemMatch makes both conditions apply to the same slot, so $ points at that slot.
     const updatedDoctor = await Doctor.findOneAndUpdate(
       {
         _id: doctorId,
-        'availableSlots._id': slotId,
-        'availableSlots.isBooked': false, // Concurrency guard
+        availableSlots: { $elemMatch: { _id: slotId, isBooked: false } }, // Concurrency guard
       },
       {
         $set: { 'availableSlots.$.isBooked': true },

@@ -211,12 +211,16 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
+    // Same reply whether or not the account exists, so this endpoint can't be used
+    // to discover which emails are registered
+    const genericReply = {
+      success: true,
+      message: 'If an account exists for this email, a password reset link has been sent.',
+    };
+
     const user = await User.findOne({ email: normalizeEmail(email) });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'No account registered with this email address',
-      });
+      return res.status(200).json(genericReply);
     }
 
     // 1. Generate password reset token
@@ -252,17 +256,15 @@ export const forgotPassword = async (req, res) => {
     `;
 
     try {
-      const info = await sendEmail({
+      // Ethereal preview URL (dev without SMTP) is logged by sendEmail, not returned,
+      // since its presence would reveal that the account exists
+      await sendEmail({
         email: user.email,
         subject: 'PulseCare AI - Password Reset Request',
         message,
       });
 
-      res.status(200).json({
-        success: true,
-        message: `Password reset instructions sent to ${email}.`,
-        previewUrl: info.previewUrl || null, // returns Ethereal URL if dynamically generated
-      });
+      res.status(200).json(genericReply);
     } catch (mailError) {
       console.error(`[Auth Controller] Email send failed: ${mailError.message}`);
       // Clear token columns if email send fails
@@ -293,7 +295,7 @@ export const resetPassword = async (req, res) => {
   const { password } = req.body;
 
   try {
-    if (!password) {
+    if (!password || typeof password !== 'string') {
       return res.status(400).json({
         success: false,
         message: 'Please provide new password',

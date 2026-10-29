@@ -138,14 +138,15 @@ export const cancelAppointment = async (req, res) => {
     }
 
     // 2. Security Check: Verify user owns this appointment
+    // (403: the user is logged in, just not allowed to touch someone else's booking)
     if (appointment.patient.toString() !== req.user.id) {
-      return res.status(401).json({
+      return res.status(403).json({
         success: false,
         message: 'Not authorized to modify this appointment',
       });
     }
 
-    // 3. Verify it is not already cancelled
+    // 3. Only upcoming appointments can be cancelled
     if (appointment.status === 'cancelled') {
       return res.status(400).json({
         success: false,
@@ -153,9 +154,27 @@ export const cancelAppointment = async (req, res) => {
       });
     }
 
-    // 4. Update appointment status to cancelled
-    appointment.status = 'cancelled';
-    await appointment.save();
+    if (appointment.status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Completed appointments cannot be cancelled',
+      });
+    }
+
+    // 4. Update status only if it is still cancellable, so a repeated cancel request
+    // can't unlock the slot again after someone else has booked it
+    const cancelled = await Appointment.findOneAndUpdate(
+      { _id: appointment._id, status: { $in: ['pending', 'confirmed'] } },
+      { status: 'cancelled' },
+      { new: true }
+    );
+
+    if (!cancelled) {
+      return res.status(409).json({
+        success: false,
+        message: 'This appointment was just updated. Please refresh and try again.',
+      });
+    }
 
     // 5. Unlock the slot in the Doctor document
     await Doctor.findOneAndUpdate(
@@ -171,7 +190,7 @@ export const cancelAppointment = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Appointment cancelled successfully!',
-      data: appointment,
+      data: cancelled,
     });
   } catch (error) {
     console.error(`[Appointment Controller] Cancellation error: ${error.message}`);

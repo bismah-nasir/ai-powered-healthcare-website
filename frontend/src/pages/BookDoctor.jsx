@@ -179,6 +179,9 @@ function BookDoctor() {
     );
   }
 
+  const hasSlots = doctor.availableSlots?.length > 0;
+  const isFullyBooked = hasSlots && doctor.availableSlots.every((slot) => slot.isBooked);
+
   return (
     <div className="min-h-screen bg-bg-base/30 py-10 px-6 relative overflow-hidden transition-colors duration-300">
       {/* Background Decorative Blur Orbs */}
@@ -285,7 +288,13 @@ function BookDoctor() {
                   <p className="text-[10px] font-bold text-danger font-body -mt-1">Please choose an available slot</p>
                 )}
                 
-                {doctor.availableSlots && doctor.availableSlots.length > 0 ? (
+                {isFullyBooked && (
+                  <p className="text-[10px] font-bold text-text-mute font-body -mt-1">
+                    Fully booked — all of this doctor's slots are taken.
+                  </p>
+                )}
+
+                {hasSlots ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {doctor.availableSlots.map((slot) => {
                       const isSelected = selectedSlot && selectedSlot._id === slot._id;
@@ -360,10 +369,14 @@ function BookDoctor() {
               {/* Submit CTA button */}
               <button
                 type="submit"
-                disabled={submitting || (doctor.availableSlots && doctor.availableSlots.length === 0)}
+                disabled={submitting || !hasSlots || isFullyBooked}
                 className="btn btn-primary w-full py-4 rounded-2xl text-base font-semibold mt-2 disabled:grayscale disabled:cursor-not-allowed disabled:pointer-events-none"
               >
-                {submitting ? 'Processing Booking...' : user ? 'Confirm Appointment' : 'Sign In to Book Appointment'}
+                {submitting
+                  ? 'Processing Booking...'
+                  : isFullyBooked
+                    ? 'Fully Booked'
+                    : user ? 'Confirm Appointment' : 'Sign In to Book Appointment'}
               </button>
 
             </form>

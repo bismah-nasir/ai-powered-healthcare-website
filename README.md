@@ -70,6 +70,8 @@ npm run dev
 ```
 *The client app will launch on `http://localhost:5173/`.*
 
+The frontend calls the backend at `http://localhost:5000` by default. To use a different address, copy [`frontend/.env.example`](./frontend/.env.example) to `frontend/.env` and set `VITE_API_URL`, then restart `npm run dev`.
+
 ---
 
 ## 📸 Screenshots & Previews

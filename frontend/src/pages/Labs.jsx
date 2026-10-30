@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { Search, Calendar, Clock, AlertTriangle, ShieldAlert, HeartPulse, CheckCircle, Info, User, Phone } from 'lucide-react';
+import { apiRequest } from '../services/api';
+import { rememberPage } from '../utils/authRedirect';
 
 const CATEGORIES = [
   'All',
@@ -20,6 +22,7 @@ function Labs() {
   const { user } = useAuth();
   const { showNotice, dismissNotice } = useNotify();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [labTests, setLabTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,8 +63,7 @@ function Labs() {
         if (selectedCategory !== 'All') params.append('category', selectedCategory);
         if (searchQuery) params.append('search', searchQuery);
 
-        const response = await fetch(`http://localhost:5000/api/labs?${params.toString()}`);
-        const resData = await response.json();
+        const { data: resData } = await apiRequest(`/api/labs?${params.toString()}`);
 
         if (resData.success) {
           setLabTests(resData.data);
@@ -86,8 +88,8 @@ function Labs() {
   // Trigger Booking wizard checks
   const handleBookTestClick = (test) => {
     if (!user) {
-      // Redirect to login if user is not signed in
-      navigate('/login');
+      // Redirect to login if user is not signed in, then come back to the lab catalog
+      navigate('/login', { state: rememberPage(location) });
       return;
     }
     setSelectedTest(test);

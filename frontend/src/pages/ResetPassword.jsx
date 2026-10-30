@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { HeartPulse, Lock, ArrowLeft, CheckCircle } from 'lucide-react';
+import { apiRequest } from '../services/api';
 
 function ResetPassword() {
   const { token } = useParams();
@@ -47,18 +48,10 @@ function ResetPassword() {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/auth/reset-password/${encodeURIComponent(token)}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ password }),
-        }
-      );
-
-      const data = await response.json();
+      const { data } = await apiRequest(`/api/auth/reset-password/${encodeURIComponent(token)}`, {
+        method: 'POST',
+        body: { password },
+      });
 
       if (data.success) {
         setSuccessMsg(data.message || 'Password reset successfully! You can now log in.');

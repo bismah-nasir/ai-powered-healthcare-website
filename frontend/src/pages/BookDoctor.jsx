@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useNotify } from '../context/NotificationContext';import { HeartPulse, Calendar, Clock, Star, Award, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
+import { useNotify } from '../context/NotificationContext';
+import { apiRequest } from '../services/api';
+import { rememberPage } from '../utils/authRedirect';
+import { HeartPulse, Calendar, Clock, Star, Award, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
 
 function BookDoctor() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { showNotice, dismissNotice } = useNotify();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Doctor detail states
   const [doctor, setDoctor] = useState(null);
@@ -29,8 +33,7 @@ function BookDoctor() {
       setLoading(true);
       setError('');
       try {
-        const response = await fetch(`http://localhost:5000/api/doctors/${id}`);
-        const resData = await response.json();
+        const { data: resData } = await apiRequest(`/api/doctors/${encodeURIComponent(id)}`);
 
         if (resData.success) {
           setDoctor(resData.data);
@@ -61,8 +64,7 @@ function BookDoctor() {
   // Reload the doctor's slots after a rejected booking; returns true if the chosen slot is no longer bookable
   const refreshSlots = async (slotId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/doctors/${id}`);
-      const resData = await response.json();
+      const { data: resData } = await apiRequest(`/api/doctors/${encodeURIComponent(id)}`);
       if (!resData.success) return false;
 
       setDoctor(resData.data);
@@ -81,8 +83,8 @@ function BookDoctor() {
 
   const submitBooking = async () => {
     if (!user) {
-      // Redirect to login if user is not signed in
-      navigate('/login');
+      // Redirect to login if user is not signed in, then come back to this doctor
+      navigate('/login', { state: rememberPage(location) });
       return;
     }
 
@@ -94,27 +96,24 @@ function BookDoctor() {
 
     setSubmitting(true);
     dismissNotice();
-    const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch('http://localhost:5000/api/appointments', {
+      const { status, data: resData } = await apiRequest('/api/appointments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+        token,
+        body: {
           doctorId: id,
           slotId: selectedSlot._id,
           symptoms,
-        }),
+        },
       });
 
-      const resData = await response.json();
-
-      if (resData.success) {
+      if (status === 401) {
+        // Session ended (the expiry notice is already shown): sign in again and return here
+        navigate('/login', { state: rememberPage(location) });
+      } else if (resData.success) {
         setSuccess(true);
-      } else if (response.status >= 500) {
+      } else if (status >= 500) {
         showNotice({
           message: resData.message || 'Booking request failed.',
           tone: 'danger',

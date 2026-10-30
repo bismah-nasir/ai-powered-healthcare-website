@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Clock, User, ArrowRight, X, AlertCircle, HeartPulse, Tag } from 'lucide-react';
+import { apiRequest } from '../services/api';
 
 const CATEGORIES = [
   'All',
@@ -35,8 +36,7 @@ function Blog() {
         if (selectedTag) params.append('tag', selectedTag);
         if (searchQuery) params.append('search', searchQuery);
 
-        const response = await fetch(`http://localhost:5000/api/blogs?${params.toString()}`);
-        const resData = await response.json();
+        const { data: resData } = await apiRequest(`/api/blogs?${params.toString()}`);
 
         if (resData.success) {
           setArticles(resData.data);

@@ -4,6 +4,7 @@ import {
   Sparkles, Stethoscope, TriangleAlert, ArrowRight, Star, Award, LoaderCircle,
   Phone, CircleCheck, Info, RotateCcw
 } from 'lucide-react';
+import { apiRequest } from '../services/api';
 
 // Visual treatment for each urgency level returned by the triage API
 const URGENCY_STYLES = {
@@ -64,17 +65,15 @@ function SymptomChecker() {
     setError('');
     setResult(null);
     try {
-      const response = await fetch('http://localhost:5000/api/triage', {
+      const { data: resData } = await apiRequest('/api/triage', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           symptoms,
           age: age || undefined,
           sex: sex || undefined,
           duration: duration || undefined,
-        }),
+        },
       });
-      const resData = await response.json();
 
       if (resData.success) {
         setResult(resData.data);

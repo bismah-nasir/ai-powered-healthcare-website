@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, ShoppingCart, AlertTriangle, Check, ShieldAlert, HeartPulse } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { apiRequest } from '../services/api';
 
 const CATEGORIES = [
   'All',
@@ -36,8 +37,7 @@ function Medicines() {
         if (selectedCategory !== 'All') params.append('category', selectedCategory);
         if (searchQuery) params.append('search', searchQuery);
 
-        const response = await fetch(`http://localhost:5000/api/medicines?${params.toString()}`);
-        const resData = await response.json();
+        const { data: resData } = await apiRequest(`/api/medicines?${params.toString()}`);
 
         if (resData.success) {
           setMedicines(resData.data);

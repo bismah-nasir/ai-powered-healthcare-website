@@ -22,7 +22,9 @@ import Contact from './pages/Contact';
 import AdminDashboard from './pages/AdminDashboard';
 import Cart from './pages/Cart';
 import SymptomChecker from './pages/SymptomChecker';
+import NotFound from './pages/NotFound';
 
+import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import PageTransition from './components/layout/PageTransition';
 import ScrollToTop from './components/layout/ScrollToTop';
@@ -45,15 +47,24 @@ function AnimatedRoutes() {
           <Route path="/home" element={<PageTransition><Home /></PageTransition>} />
           <Route path="/doctors" element={<PageTransition><Doctors /></PageTransition>} />
           <Route path="/book-doctor/:id" element={<PageTransition><BookDoctor /></PageTransition>} />
-          <Route path="/my-appointments" element={<PageTransition><MyAppointments /></PageTransition>} />
           <Route path="/medicines" element={<PageTransition><Medicines /></PageTransition>} />
           <Route path="/labs" element={<PageTransition><Labs /></PageTransition>} />
           <Route path="/emergency" element={<PageTransition><Emergency /></PageTransition>} />
           <Route path="/blog" element={<PageTransition><Blog /></PageTransition>} />
           <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
-          <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
           <Route path="/cart" element={<PageTransition><Cart /></PageTransition>} />
           <Route path="/symptom-checker" element={<PageTransition><SymptomChecker /></PageTransition>} />
+
+          {/* Signed-in users only (guests are sent to /login and brought back afterwards) */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/my-appointments" element={<PageTransition><MyAppointments /></PageTransition>} />
+          </Route>
+          <Route element={<ProtectedRoute role="admin" />}>
+            <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+          </Route>
+
+          {/* Any unknown address */}
+          <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
         </Route>
       </Routes>
     </AnimatePresence>

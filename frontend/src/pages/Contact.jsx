@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, User, Tag, FileText, Send, CheckCircle, AlertTriangle } from 'lucide-react';
+import { apiRequest } from '../services/api';
 
 function Contact() {
   // Form input states
@@ -30,17 +31,12 @@ function Contact() {
     setErrorMsg('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/contact', {
+      const { ok, data } = await apiRequest('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        body: formData,
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (ok && data.success) {
         setSuccessMsg(data.message || 'Support ticket submitted successfully!');
         // Clear form values
         setFormData({

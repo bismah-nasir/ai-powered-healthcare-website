@@ -23,6 +23,7 @@ const contactSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
+      maxlength: [20, 'Phone number cannot exceed 20 characters'],
       default: '',
     },
     subject: {

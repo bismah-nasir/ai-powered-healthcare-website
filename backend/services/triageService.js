@@ -118,7 +118,8 @@ export const runSymptomTriage = async ({ symptoms, age, sex, duration }) => {
   }
 
   const patientDetails = [
-    age ? `Age: ${age}` : null,
+    // Compare against null so an infant's age of 0 is still sent
+    age !== null && age !== undefined ? `Age: ${age}` : null,
     sex ? `Sex: ${sex}` : null,
     duration ? `Duration: ${duration}` : null,
   ].filter(Boolean).join('\n');

@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Name is required'],
       trim: true,
+      minlength: [2, 'Name must be at least 2 characters'],
+      maxlength: [50, 'Name cannot exceed 50 characters'],
     },
     email: {
       type: String,
@@ -24,11 +26,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters long'],
+      // bcrypt ignores everything past 72 bytes, so longer passwords would give a false sense of strength
+      maxlength: [72, 'Password cannot exceed 72 characters'],
       select: false, // Prevents password from returning in queries by default
     },
     phone: {
       type: String,
       trim: true,
+      maxlength: [20, 'Phone number cannot exceed 20 characters'],
       default: '',
     },
     role: {

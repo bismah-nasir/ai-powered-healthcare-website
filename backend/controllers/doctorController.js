@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Doctor from '../models/Doctor.js';
 import escapeRegex from '../utils/escapeRegex.js';
 
@@ -50,8 +51,11 @@ export const getDoctors = async (req, res) => {
  */
 export const getDoctorById = async (req, res) => {
   try {
-    const doctor = await Doctor.findById(req.params.id);
-    
+    // Malformed IDs count as not found
+    const doctor = mongoose.isValidObjectId(req.params.id)
+      ? await Doctor.findById(req.params.id)
+      : null;
+
     if (!doctor) {
       return res.status(404).json({
         success: false,
@@ -65,15 +69,6 @@ export const getDoctorById = async (req, res) => {
     });
   } catch (error) {
     console.error(`[Doctor Controller] Get Doctor By ID error: ${error.message}`);
-    
-    // Check if error is due to an invalid Mongoose Object ID
-    if (error.kind === 'ObjectId') {
-      return res.status(404).json({
-        success: false,
-        message: 'Doctor profile not found',
-      });
-    }
-
     res.status(500).json({
       success: false,
       message: 'Server error, could not retrieve doctor details',

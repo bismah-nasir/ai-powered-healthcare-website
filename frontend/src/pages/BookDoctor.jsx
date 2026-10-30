@@ -343,6 +343,7 @@ function BookDoctor() {
                   </span>
                   <textarea
                     rows={4}
+                    maxLength={1000}
                     placeholder="Describe any symptoms, medical history, or details about the booking request..."
                     value={symptoms}
                     onChange={(e) => setSymptoms(e.target.value)}

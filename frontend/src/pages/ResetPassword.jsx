@@ -33,6 +33,12 @@ function ResetPassword() {
       return;
     }
 
+    if (password.length > 72) {
+      setError('Password cannot exceed 72 characters');
+      setLoading(false);
+      return;
+    }
+
     // 3. Confirm password check
     if (password !== confirmPassword) {
       setError('Passwords do not match');

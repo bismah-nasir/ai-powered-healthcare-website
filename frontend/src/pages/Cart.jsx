@@ -38,7 +38,7 @@ function Cart() {
   const orderTotal = cartSubtotal + DELIVERY_FEE;
 
   // Check if any cart item requires a prescription (Rx Required)
-  const requiresPrescription = cartItems.some((item) => item.requiresPrescription);
+  const requiresPrescription = cartItems.some((item) => item.isPrescriptionRequired);
 
   const handleRemoveItem = (itemId) => {
     removeFromCart(itemId);
@@ -245,7 +245,7 @@ function Cart() {
                     <div className="grow min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h4 className="font-bold text-sm text-text-main truncate leading-snug">{item.name}</h4>
-                        {item.requiresPrescription && (
+                        {item.isPrescriptionRequired && (
                           <span className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 text-[7px] font-extrabold uppercase px-1 py-0.5 rounded tracking-wide font-body">Rx</span>
                         )}
                       </div>

@@ -1,23 +1,71 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNotify } from './NotificationContext';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
+
+const CART_STORAGE_KEY = 'cart';
+
+// A saved cart line must have every field the cart reads, with the right type
+const isValidCartItem = (item) =>
+  item !== null
+  && typeof item === 'object'
+  && typeof item._id === 'string'
+  && item._id !== ''
+  && typeof item.name === 'string'
+  && typeof item.category === 'string'
+  && Number.isFinite(item.price)
+  && item.price >= 0
+  && Number.isFinite(item.stock)
+  && item.stock >= 0
+  && Number.isInteger(item.quantity)
+  && item.quantity >= 1;
+
+// Read the saved cart, dropping anything malformed (edited by hand, truncated, etc.)
+const loadSavedCart = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY));
+    if (!Array.isArray(parsed)) return [];
+
+    const seenIds = new Set();
+    return parsed.filter((item) => {
+      if (!isValidCartItem(item) || seenIds.has(item._id)) return false;
+      seenIds.add(item._id);
+      return true;
+    });
+  } catch {
+    // Unreadable JSON or storage blocked by the browser
+    return [];
+  }
+};
 
 // eslint-disable-next-line react-refresh/only-export-components -- hook is kept next to its provider
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-  // Load initial cart state from localStorage
-  const [cartItems, setCartItems] = useState(() => {
-    const savedCart = localStorage.getItem('cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  const [cartItems, setCartItems] = useState(loadSavedCart);
 
   const { showNotice } = useNotify();
+  const { user } = useAuth();
 
-  // Save cart to localStorage whenever it changes
+  // Empty the cart when a signed-in user logs out or another account signs in,
+  // so the next person on this browser doesn't see it. A guest's cart is kept on login.
+  const [prevUser, setPrevUser] = useState(user);
+  if (user !== prevUser) {
+    setPrevUser(user);
+    if (prevUser && prevUser._id !== user?._id) {
+      setCartItems([]);
+    }
+  }
+
+  // Save cart to localStorage whenever it changes (this also overwrites a corrupted saved cart)
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } catch (error) {
+      // Storage full or blocked: the cart still works for this visit
+      console.error('[Cart Context] Could not save cart:', error.message);
+    }
   }, [cartItems]);
 
   // Add item to cart

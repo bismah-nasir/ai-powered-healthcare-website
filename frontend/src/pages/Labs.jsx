@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotify } from '../context/NotificationContext';
 import { Search, Calendar, Clock, AlertTriangle, ShieldAlert, HeartPulse, CheckCircle, Info, User, Phone } from 'lucide-react';
 
 const CATEGORIES = [
@@ -17,6 +18,7 @@ const CATEGORIES = [
 
 function Labs() {
   const { user } = useAuth();
+  const { showNotice, dismissNotice } = useNotify();
   const navigate = useNavigate();
 
   const [labTests, setLabTests] = useState([]);
@@ -97,14 +99,20 @@ function Labs() {
   };
 
   // Submit test booking request
-  const handleBookingSubmit = async (e) => {
+  const handleBookingSubmit = (e) => {
     e.preventDefault();
+    submitLabBooking();
+  };
+
+  const submitLabBooking = async () => {
     if (!bookingDate) {
-      alert('Please select a booking date.');
+      document.getElementById('lab-booking-date')?.focus();
+      showNotice({ message: 'Please select a booking date.', tone: 'warning' });
       return;
     }
 
     setBookingSubmitting(true);
+    dismissNotice();
     try {
       // Simulate API saving delay
       // In a production app, we write a document to the LabOrders/Appointments collection
@@ -112,7 +120,11 @@ function Labs() {
       setBookingSuccess(true);
       setBookingModalOpen(false);
     } catch {
-      alert('Booking request failed. Please try again.');
+      showNotice({
+        message: 'Booking request failed. Please try again.',
+        tone: 'danger',
+        actions: [{ label: 'Retry', onClick: submitLabBooking }],
+      });
     } finally {
       setBookingSubmitting(false);
     }
@@ -414,6 +426,7 @@ function Labs() {
                   <Calendar className="w-5 h-5" />
                 </span>
                 <input
+                  id="lab-booking-date"
                   type="date"
                   required
                   value={bookingDate}

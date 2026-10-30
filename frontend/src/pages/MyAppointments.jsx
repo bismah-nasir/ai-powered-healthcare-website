@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useNotify } from '../context/NotificationContext';
 import { Calendar, Clock, FileText, AlertCircle, XCircle, CheckCircle } from 'lucide-react';
 
 const LOGIN_REQUIRED_MESSAGE = 'You must be logged in to view appointments.';
@@ -28,6 +29,8 @@ const requestAppointments = async (token) => {
 };
 
 function MyAppointments() {
+  const { showNotice, dismissNotice } = useNotify();
+
   // Appointments states (start in the logged-out error state when no token is stored)
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('token')));
@@ -76,15 +79,19 @@ function MyAppointments() {
     setCancelModalOpen(true);
   };
 
-  const confirmCancellation = async () => {
+  const confirmCancellation = () => {
     if (!selectedAppointment) return;
-    
-    setCancellingId(selectedAppointment._id);
     setCancelModalOpen(false);
-    
+    cancelAppointment(selectedAppointment);
+  };
+
+  const cancelAppointment = async (appointment) => {
+    setCancellingId(appointment._id);
+    dismissNotice();
+
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/${selectedAppointment._id}/cancel`, {
+      const response = await fetch(`http://localhost:5000/api/appointments/${appointment._id}/cancel`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -97,12 +104,24 @@ function MyAppointments() {
       if (resData.success) {
         // Refresh local listings to update state status
         fetchAppointments();
+      } else if (response.status >= 500) {
+        showNotice({
+          message: resData.message || 'Failed to cancel appointment.',
+          tone: 'danger',
+          actions: [{ label: 'Retry', onClick: () => cancelAppointment(appointment) }],
+        });
       } else {
-        alert(resData.message || 'Failed to cancel appointment.');
+        // The appointment may have changed elsewhere (already cancelled, completed); show its current status
+        showNotice({ message: resData.message || 'Failed to cancel appointment.', tone: 'danger' });
+        fetchAppointments();
       }
     } catch (err) {
       console.error('[MyAppointments Page] Cancel error:', err.message);
-      alert('Connection to server failed. Please try again.');
+      showNotice({
+        message: 'Connection to server failed. Please try again.',
+        tone: 'danger',
+        actions: [{ label: 'Retry', onClick: () => cancelAppointment(appointment) }],
+      });
     } finally {
       setCancellingId(null);
       setSelectedAppointment(null);

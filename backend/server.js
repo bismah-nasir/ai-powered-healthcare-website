@@ -34,8 +34,11 @@ connectDB();
 
 const app = express();
 
+// Only the frontend may call the API from a browser (Origin has no trailing slash, so strip one from the env value)
+const clientOrigin = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+
 // Middleware
-app.use(cors());
+app.use(cors({ origin: clientOrigin }));
 app.use(express.json());
 // Express 5 leaves req.body undefined when no JSON body is sent; default it so destructuring is safe
 app.use((req, res, next) => {

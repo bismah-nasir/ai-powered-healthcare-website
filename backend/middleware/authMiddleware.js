@@ -27,6 +27,14 @@ export const protect = async (req, res, next) => {
         });
       }
 
+      // Tokens from before a password reset belong to sessions that should now be logged out
+      if (req.user.changedPasswordAfter(decoded.iat)) {
+        return res.status(401).json({
+          success: false,
+          message: 'Password was changed recently, please log in again.',
+        });
+      }
+
       // Proceed to the next middleware/controller
       next();
     } catch (error) {

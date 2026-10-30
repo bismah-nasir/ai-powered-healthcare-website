@@ -38,6 +38,8 @@ const userSchema = new mongoose.Schema(
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
+    // Login tokens issued before this moment are rejected, so a password change logs out old sessions
+    passwordChangedAt: Date,
   },
   {
     timestamps: true, // Automatically manages createdAt and updatedAt fields
@@ -53,7 +55,20 @@ userSchema.pre('save', async function () {
 
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
+
+  // A new account has no older sessions to revoke
+  if (!this.isNew) {
+    this.passwordChangedAt = Date.now();
+  }
 });
+
+// True when the token was issued before the last password change (iat is in seconds)
+userSchema.methods.changedPasswordAfter = function (tokenIssuedAt) {
+  if (!this.passwordChangedAt) {
+    return false;
+  }
+  return tokenIssuedAt < Math.floor(this.passwordChangedAt.getTime() / 1000);
+};
 
 // Custom instance method to compare passwords during login
 userSchema.methods.comparePassword = async function (enteredPassword) {

@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import User from '../models/User.js';
 import sendEmail from '../utils/sendEmail.js';
+import escapeHtml from '../utils/escapeHtml.js';
 
 // Helper function to generate JWT
 const generateToken = (id) => {
@@ -243,7 +244,7 @@ export const forgotPassword = async (req, res) => {
     const message = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
         <h2 style="color: #00b4a2; text-align: center;">PulseCare AI</h2>
-        <p>Hello ${user.name},</p>
+        <p>Hello ${escapeHtml(user.name)},</p>
         <p>You requested a password reset for your PulseCare AI portal account. Please click the button below to reset your password. This link is valid for 10 minutes:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${resetUrl}" style="background-color: #00b4a2; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 8px; display: inline-block;">Reset Password</a>

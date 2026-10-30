@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useNotify } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
+import { apiRequest } from '../services/api';
+import { rememberPage } from '../utils/authRedirect';
 import { 
   Trash2, Plus, Minus, ShoppingBag, MapPin, Phone, 
   CreditCard, ShieldAlert, CheckCircle, ArrowLeft, Info 
 } from 'lucide-react';
 
 function Cart() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const location = useLocation();
   const { 
     cartItems, 
     updateQuantity, 
@@ -103,24 +106,21 @@ function Cart() {
     dismissNotice();
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const { ok, status, data } = await apiRequest('/api/orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+        token,
+        body: {
           items: cartItems,
           shippingAddress,
           contactPhone,
           paymentMethod,
-        }),
+        },
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (status === 401) {
+        // Session ended: the expiry notice is shown and the cart is cleared, as on logout
+        return;
+      } else if (ok && data.success) {
         // Construct receipt matching schema return data
         const receipt = {
           orderId: data.data._id,
@@ -530,6 +530,7 @@ function Cart() {
               </button>
               <Link
                 to="/login"
+                state={rememberPage(location)}
                 className="btn btn-primary grow text-sm! font-semibold border-0 text-center"
               >
                 Sign In

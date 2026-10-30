@@ -1,22 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
+import { apiRequest } from '../services/api';
 import { Calendar, Clock, FileText, AlertCircle, XCircle, CheckCircle } from 'lucide-react';
-
-const LOGIN_REQUIRED_MESSAGE = 'You must be logged in to view appointments.';
 
 // Fetch appointments list, resolving to { data } on success or { error } on failure
 const requestAppointments = async (token) => {
   try {
-    const response = await fetch('http://localhost:5000/api/appointments/my', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    const resData = await response.json();
+    const { data: resData } = await apiRequest('/api/appointments/my', { token });
 
     if (resData.success) {
       return { data: resData.data };
@@ -29,12 +21,14 @@ const requestAppointments = async (token) => {
 };
 
 function MyAppointments() {
+  // The route guard only renders this page for a signed-in user
+  const { token } = useAuth();
   const { showNotice, dismissNotice } = useNotify();
 
-  // Appointments states (start in the logged-out error state when no token is stored)
+  // Appointments states
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('token')));
-  const [error, setError] = useState(() => (localStorage.getItem('token') ? '' : LOGIN_REQUIRED_MESSAGE));
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   
   // UI States
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'history'
@@ -46,13 +40,6 @@ function MyAppointments() {
   const fetchAppointments = () => {
     setLoading(true);
     setError('');
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-      setError(LOGIN_REQUIRED_MESSAGE);
-      setLoading(false);
-      return;
-    }
 
     requestAppointments(token).then(({ data, error: requestError }) => {
       if (data) setAppointments(data);
@@ -63,15 +50,12 @@ function MyAppointments() {
 
   // Initial load (state is only updated once the request settles)
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
     requestAppointments(token).then(({ data, error: requestError }) => {
       if (data) setAppointments(data);
       else setError(requestError);
       setLoading(false);
     });
-  }, []);
+  }, [token]);
 
   // Cancel booking handler
   const handleCancelClick = (appointment) => {
@@ -89,22 +73,19 @@ function MyAppointments() {
     setCancellingId(appointment._id);
     dismissNotice();
 
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/${appointment._id}/cancel`, {
+      const { status, data: resData } = await apiRequest(`/api/appointments/${appointment._id}/cancel`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        token,
       });
 
-      const resData = await response.json();
-
-      if (resData.success) {
+      if (status === 401) {
+        // Session ended: the route guard sends the user to the login page
+        return;
+      } else if (resData.success) {
         // Refresh local listings to update state status
         fetchAppointments();
-      } else if (response.status >= 500) {
+      } else if (status >= 500) {
         showNotice({
           message: resData.message || 'Failed to cancel appointment.',
           tone: 'danger',

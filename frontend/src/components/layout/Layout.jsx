@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 
 function Layout() {
@@ -17,8 +17,8 @@ function Layout() {
         <div className="max-w-300 mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>© {new Date().getFullYear()} PulseCare AI. All Rights Reserved.</p>
           <div className="flex gap-4">
-            <a href="/terms" className="hover:text-primary transition-colors">Terms of Service</a>
-            <a href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</a>
+            <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
           </div>
         </div>
       </footer>

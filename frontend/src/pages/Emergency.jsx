@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Phone, MapPin, AlertCircle, ShieldAlert, HeartPulse, Building, Droplets } from 'lucide-react';
+import { apiRequest } from '../services/api';
 
 const CATEGORIES = [
   'All',
@@ -28,8 +29,7 @@ function Emergency() {
         if (selectedCategory !== 'All') params.append('category', selectedCategory);
         if (searchQuery) params.append('search', searchQuery);
 
-        const response = await fetch(`http://localhost:5000/api/emergency?${params.toString()}`);
-        const resData = await response.json();
+        const { data: resData } = await apiRequest(`/api/emergency?${params.toString()}`);
 
         if (resData.success) {
           setEmergencies(resData.data);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Calendar, Star, Award, ArrowRight, HeartPulse, X, Wallet } from 'lucide-react';
+import { apiRequest } from '../services/api';
 
 // Department Category List matching Mongoose schema enums
 const DEPARTMENTS = [
@@ -35,8 +36,7 @@ function Doctors() {
         if (selectedDept !== 'All') params.append('department', selectedDept);
         if (searchQuery) params.append('search', searchQuery);
 
-        const response = await fetch(`http://localhost:5000/api/doctors?${params.toString()}`);
-        const resData = await response.json();
+        const { data: resData } = await apiRequest(`/api/doctors?${params.toString()}`);
 
         if (resData.success) {
           setDoctors(resData.data);

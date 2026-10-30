@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
+import { apiRequest } from '../services/api';
 import {
   Users, HeartPulse, Calendar, Mail, Clock,
   Shield, Settings, X,
@@ -8,7 +10,7 @@ import {
 } from 'lucide-react';
 
 function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { showNotice } = useNotify();
 
   // Dashboard states
@@ -31,14 +33,7 @@ function AdminDashboard() {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/admin/stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        const resData = await response.json();
+        const { data: resData } = await apiRequest('/api/admin/stats', { token });
 
         if (resData.success) {
           setStats(resData.data);
@@ -54,7 +49,7 @@ function AdminDashboard() {
     };
 
     fetchDashboardStats();
-  }, []);
+  }, [token]);
 
   // Show a failed status update; retrying only helps for server-side (5xx) or connection failures
   const notifyStatusError = (message, onRetry) => {
@@ -70,17 +65,14 @@ function AdminDashboard() {
     const retry = () => handleStatusChange(ticketId, nextStatus);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/tickets/${ticketId}`, {
+      const { status, data: resData } = await apiRequest(`/api/admin/tickets/${ticketId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: nextStatus }),
+        token,
+        body: { status: nextStatus },
       });
 
-      const resData = await response.json();
+      // Session ended: the route guard sends the admin to the login page
+      if (status === 401) return;
 
       if (resData.success) {
         // Update local state list dynamically
@@ -101,7 +93,7 @@ function AdminDashboard() {
       } else {
         notifyStatusError(
           resData.message || 'Failed to update ticket status.',
-          response.status >= 500 ? retry : null
+          status >= 500 ? retry : null
         );
       }
     } catch (err) {
@@ -115,17 +107,14 @@ function AdminDashboard() {
     const retry = () => handleOrderStatusChange(orderId, nextStatus);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+      const { status, data: resData } = await apiRequest(`/api/orders/${orderId}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: nextStatus }),
+        token,
+        body: { status: nextStatus },
       });
 
-      const resData = await response.json();
+      // Session ended: the route guard sends the admin to the login page
+      if (status === 401) return;
 
       if (resData.success) {
         // Update local state list dynamically
@@ -146,7 +135,7 @@ function AdminDashboard() {
       } else {
         notifyStatusError(
           resData.message || 'Failed to update order status.',
-          response.status >= 500 ? retry : null
+          status >= 500 ? retry : null
         );
       }
     } catch (err) {
@@ -260,9 +249,9 @@ function AdminDashboard() {
           </div>
           <h2 className="text-lg font-bold text-text-main font-headings">Administration Security Alert</h2>
           <p className="text-xs text-text-sub font-body leading-relaxed">{errorMsg}</p>
-          <a href="/home" className="btn btn-secondary px-6 py-2.5 rounded-xl text-xs font-semibold">
+          <Link to="/home" className="btn btn-secondary px-6 py-2.5 rounded-xl text-xs font-semibold">
             Return Home
-          </a>
+          </Link>
         </div>
       </div>
     );

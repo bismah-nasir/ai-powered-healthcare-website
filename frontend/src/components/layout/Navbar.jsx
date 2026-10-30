@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { rememberPage } from '../../utils/authRedirect';
 import { HeartPulse, ShoppingCart, Sun, Moon, Menu, X, LogOut, User, Calendar } from 'lucide-react';
 
 const getInitials = (name) => {
@@ -169,7 +170,7 @@ function Navbar() {
               )}
             </div>
           ) : (
-            <Link to="/login" className="btn btn-primary px-6! py-2.5! rounded-xl text-sm! whitespace-nowrap">
+            <Link to="/login" state={rememberPage(location)} className="btn btn-primary px-6! py-2.5! rounded-xl text-sm! whitespace-nowrap">
               Sign In
             </Link>
           )}
@@ -267,7 +268,7 @@ function Navbar() {
               </button>
             </div>
           ) : (
-            <Link to="/login" onClick={handleNavClick} className="btn btn-primary w-full py-3.5 rounded-xl text-center">
+            <Link to="/login" state={rememberPage(location)} onClick={handleNavClick} className="btn btn-primary w-full py-3.5 rounded-xl text-center">
               Sign In
             </Link>
           )}

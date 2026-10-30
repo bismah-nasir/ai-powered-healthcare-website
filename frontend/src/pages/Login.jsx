@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getRedirectPath } from '../utils/authRedirect';
 import { HeartPulse, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Form states
   const [email, setEmail] = useState('');
@@ -33,8 +35,8 @@ function Login() {
       const result = await login(email, password);
       
       if (result.success) {
-        // Redirect to Home Dashboard on successful login
-        navigate('/home');
+        // Return to the page that asked for login (or Home); replace so Back doesn't reopen the form
+        navigate(getRedirectPath(location), { replace: true });
       } else {
         setError(result.message || 'Login failed. Please check your credentials.');
       }
@@ -150,7 +152,7 @@ function Login() {
         {/* Footer Navigation Link */}
         <p className="text-center text-xs text-text-sub font-body">
           Don't have an account?{' '}
-          <Link to="/signup" className="text-primary hover:text-primary-hover font-bold">
+          <Link to="/signup" state={location.state} className="text-primary hover:text-primary-hover font-bold">
             Sign Up
           </Link>
         </p>

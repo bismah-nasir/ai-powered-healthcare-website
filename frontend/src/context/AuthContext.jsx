@@ -1,48 +1,110 @@
 import { createContext, useState, useEffect, useContext } from 'react';
+import { apiRequest, setUnauthorizedHandler } from '../services/api';
+import { useNotify } from './NotificationContext';
 
 const AuthContext = createContext(null);
 
-const API_BASE_URL = 'http://localhost:5000/api/auth';
+const TOKEN_STORAGE_KEY = 'token';
+const USER_STORAGE_KEY = 'user';
+
+// Profile fields kept in auth state (the API response also carries the token)
+const toSessionUser = (data) => ({
+  _id: data._id,
+  name: data.name,
+  email: data.email,
+  phone: data.phone || '',
+  role: data.role,
+});
+
+// Last verified profile, used when the server can't be reached on load
+const loadSavedUser = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(USER_STORAGE_KEY));
+    if (parsed && typeof parsed === 'object' && typeof parsed._id === 'string' && typeof parsed.name === 'string') {
+      return toSessionUser(parsed);
+    }
+  } catch {
+    // Unreadable JSON or storage blocked by the browser
+  }
+  return null;
+};
+
+const saveSession = (token, user) => {
+  try {
+    if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  } catch (error) {
+    // Storage full or blocked: the session still works until the tab is closed
+    console.error('[Auth Context] Could not save session:', error.message);
+  }
+};
+
+const clearSavedSession = () => {
+  try {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
+  } catch {
+    // Storage blocked: nothing was saved
+  }
+};
+
+const readSavedToken = () => {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const { showNotice } = useNotify();
+
   // Logout handler
   const logout = () => {
-    localStorage.removeItem('token');
+    clearSavedSession();
     setToken(null);
     setUser(null);
   };
 
+  // End the session when the server rejects the current token (expired, password changed, account deleted).
+  // A 401 for an older token is ignored, so a slow request can't log out a newer login.
+  useEffect(() => {
+    return setUnauthorizedHandler((rejectedToken) => {
+      if (rejectedToken !== readSavedToken()) return;
+
+      clearSavedSession();
+      setToken(null);
+      setUser(null);
+      showNotice({ message: 'Your session has expired. Please sign in again.', tone: 'warning' });
+    });
+  }, [showNotice]);
+
   // Sync token and user profile on load
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('token');
+      const storedToken = readSavedToken();
       if (storedToken) {
+        setToken(storedToken);
         try {
-          setToken(storedToken);
           // Fetch current profile to verify token is valid and active
-          const response = await fetch(`${API_BASE_URL}/profile`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${storedToken}`,
-            },
-          });
+          const { ok, status, data } = await apiRequest('/api/auth/profile', { token: storedToken });
 
-          const resData = await response.json();
-
-          if (resData.success) {
-            setUser(resData.data);
-          } else {
-            // If token expired or invalid, log out the user
-            logout();
+          if (ok && data.success) {
+            const profile = toSessionUser(data.data);
+            saveSession(null, profile);
+            setUser(profile);
+          } else if (status !== 401) {
+            // Server trouble (5xx, rate limit) is not a reason to log out; a 401 is handled above
+            setUser(loadSavedUser());
           }
         } catch (error) {
+          // Offline or backend down: keep the session and use the last known profile
           console.error('[Auth Context] Initialization error:', error.message);
-          logout();
+          setUser(loadSavedUser());
         }
       }
       setLoading(false);
@@ -54,25 +116,16 @@ export const AuthProvider = ({ children }) => {
   // Login handler
   const login = async (email, password) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const { data } = await apiRequest('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       });
 
-      const data = await response.json();
-
       if (data.success) {
-        localStorage.setItem('token', data.data.token);
+        const profile = toSessionUser(data.data);
+        saveSession(data.data.token, profile);
         setToken(data.data.token);
-        setUser({
-          _id: data.data._id,
-          name: data.data.name,
-          email: data.data.email,
-          role: data.data.role,
-        });
+        setUser(profile);
         return { success: true };
       } else {
         return { success: false, message: data.message };
@@ -86,25 +139,16 @@ export const AuthProvider = ({ children }) => {
   // Registration handler
   const signup = async (name, email, password, phone) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/signup`, {
+      const { data } = await apiRequest('/api/auth/signup', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password, phone }),
+        body: { name, email, password, phone },
       });
 
-      const data = await response.json();
-
       if (data.success) {
-        localStorage.setItem('token', data.data.token);
+        const profile = toSessionUser(data.data);
+        saveSession(data.data.token, profile);
         setToken(data.data.token);
-        setUser({
-          _id: data.data._id,
-          name: data.data.name,
-          email: data.data.email,
-          role: data.data.role,
-        });
+        setUser(profile);
         return { success: true };
       } else {
         return { success: false, message: data.message };

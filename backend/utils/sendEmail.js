@@ -1,15 +1,15 @@
 import nodemailer from 'nodemailer';
 
+const SMTP_VARS = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'];
+
 const sendEmail = async (options) => {
   let transporter;
 
   // Check if SMTP environment variables are configured
-  if (
-    process.env.SMTP_HOST &&
-    process.env.SMTP_PORT &&
-    process.env.SMTP_USER &&
-    process.env.SMTP_PASS
-  ) {
+  const missingVars = SMTP_VARS.filter((name) => !process.env[name]);
+  const useSmtp = missingVars.length === 0;
+
+  if (useSmtp) {
     // Standard SMTP transporter configuration
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -22,7 +22,12 @@ const sendEmail = async (options) => {
     });
   } else {
     // FALLBACK: Auto-generate test SMTP account using Ethereal Email
-    console.log('[Email Utility] SMTP credentials not set in .env. Generating Ethereal test account...');
+    // A partial setup would otherwise fall back silently, so name what is missing
+    if (missingVars.length < SMTP_VARS.length) {
+      console.warn(`[Email Utility] Incomplete SMTP config, missing: ${missingVars.join(', ')}. Falling back to Ethereal.`);
+    } else {
+      console.log('[Email Utility] SMTP credentials not set in .env. Generating Ethereal test account...');
+    }
     const testAccount = await nodemailer.createTestAccount();
     
     transporter = nodemailer.createTransport({
@@ -48,7 +53,7 @@ const sendEmail = async (options) => {
   console.log(`[Email Utility] Message sent: ${info.messageId}`);
   
   // If using Ethereal fallback, extract the URL to inspect the inbox online
-  if (!process.env.SMTP_HOST) {
+  if (!useSmtp) {
     const previewUrl = nodemailer.getTestMessageUrl(info);
     console.log(`[Email Utility] Ethereal Preview URL: ${previewUrl}`);
     info.previewUrl = previewUrl;

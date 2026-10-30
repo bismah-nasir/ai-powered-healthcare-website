@@ -46,19 +46,13 @@ PulseCare features a custom visual system built using **Tailwind CSS v4** and **
 
 ### 1. Database Configuration
 1.  Navigate to the `backend/` directory.
-2.  Create a `.env` file:
-    ```env
-    PORT=5000
-    MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/pulsecare_db?retryWrites=true&w=majority
-    JWT_SECRET=your_custom_secure_jwt_secret_key_here
-    GEMINI_API_KEY=your_google_ai_studio_api_key_here
-    # Primary model, and the backup used if the primary is unavailable or rate limited
-    GEMINI_MODEL=gemini-3.5-flash-lite
-    GEMINI_FALLBACK_MODEL=gemini-3.1-flash-lite
-    # Frontend URL used in password reset emails (defaults to http://localhost:5173)
-    CLIENT_URL=http://localhost:5173
+2.  Create a `.env` file from the template and fill in your values. Each variable is explained in [`backend/.env.example`](./backend/.env.example):
+    ```bash
+    cp .env.example .env
     ```
+    Only `MONGODB_URI` and `JWT_SECRET` are required; the server will not start without them.
 3.  Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey). Without it, the rest of the app works normally and the Symptom Checker returns a "not configured" message. The `/api/triage` endpoint is limited to 5 requests per minute per IP to stay within Gemini free-tier quotas.
+4.  (Optional) To send real password reset emails through Gmail, fill in the `SMTP_*` and `FROM_EMAIL` values using a Gmail [App Password](https://myaccount.google.com/apppasswords). Without them, emails go to a test [Ethereal](https://ethereal.email) inbox and a preview link is printed in the backend terminal.
 
 ### 2. Run the Backend Server
 ```bash

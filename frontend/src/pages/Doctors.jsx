@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, Star, Award, ArrowRight, HeartPulse, X } from 'lucide-react';
+import { Search, Calendar, Star, Award, ArrowRight, HeartPulse, X, Wallet } from 'lucide-react';
 
 // Department Category List matching Mongoose schema enums
 const DEPARTMENTS = [
@@ -198,9 +198,10 @@ function Doctors() {
               /* DOCTORS GRID VIEW */
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {doctors.map((doctor, idx) => {
-                  const nextSlot = doctor.availableSlots && doctor.availableSlots.length > 0 
-                    ? `${doctor.availableSlots[0].day} at ${doctor.availableSlots[0].time}`
-                    : 'No slots available';
+                  const openSlot = doctor.availableSlots?.find((slot) => !slot.isBooked);
+                  const nextSlot = openSlot
+                    ? `${openSlot.day} at ${openSlot.time}`
+                    : doctor.availableSlots?.length ? 'Fully booked' : 'No slots available';
 
                   return (
                     <div 
@@ -260,29 +261,24 @@ function Doctors() {
                         {/* Next availability slot */}
                         <div className="flex items-center gap-2 text-xs text-text-sub font-body">
                           <Calendar className="w-4 h-4 text-secondary" />
-                          <span className="truncate">Next Available: <strong className="text-text-main font-semibold">{nextSlot}</strong></span>
+                          <span className="truncate">Next Available: <strong className={`font-semibold ${openSlot ? 'text-text-main' : 'text-danger'}`}>{nextSlot}</strong></span>
+                        </div>
+
+                        {/* Consultation fee */}
+                        <div className="flex items-center gap-2 text-xs text-text-sub font-body">
+                          <Wallet className="w-4 h-4 text-primary" />
+                          <span>Consultation Fee: <strong className="text-text-main font-bold">Rs {doctor.consultationFee}</strong></span>
                         </div>
                       </div>
 
-                      {/* Footer Actions (Price + Booking Link) */}
-                      <div className="flex items-center justify-between mt-1 pt-1">
-                        <div>
-                          <p className="text-[10px] text-text-mute font-body tracking-wider uppercase font-semibold">Consultation</p>
-                          <p className="text-base font-extrabold text-text-main font-headings flex items-center mt-0.5">
-                            <span className="text-xs text-primary font-bold mr-0.5">Rs</span>
-                            {doctor.consultationFee}
-                          </p>
-                        </div>
-
-                        {/* Booking redirect button */}
-                        <Link 
-                          to={`/book-doctor/${doctor._id}`}
-                          className="btn btn-primary rounded-xl text-sm! font-semibold flex items-center gap-1.5 transition-all"
-                        >
-                          Book Now
-                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                      </div>
+                      {/* Booking redirect button (profile link only when no slot is open) */}
+                      <Link
+                        to={`/book-doctor/${doctor._id}`}
+                        className={`btn ${openSlot ? 'btn-primary' : 'btn-secondary'} w-full rounded-xl text-sm! font-semibold flex items-center justify-center gap-1.5 transition-all`}
+                      >
+                        {openSlot ? 'Book Now' : 'View Profile'}
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                      </Link>
 
                     </div>
                   );

@@ -9,6 +9,7 @@ import Splash from './pages/Splash';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Home from './pages/Home';
 import Doctors from './pages/Doctors';
 import BookDoctor from './pages/BookDoctor';
@@ -37,6 +38,7 @@ function AnimatedRoutes() {
         <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
         <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
         <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+        <Route path="/reset-password/:token" element={<PageTransition><ResetPassword /></PageTransition>} />
 
         {/* Main Portal Dashboard Routing (Wrapped inside header/footer layout) */}
         <Route element={<Layout />}>

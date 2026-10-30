@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 import Splash from './pages/Splash';
 import Login from './pages/Login';
@@ -59,14 +60,16 @@ function AnimatedRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <Router>
-          <ScrollToTop />
-          <AnimatedRoutes />
-        </Router>
-      </CartProvider>
-    </AuthProvider>
+    <NotificationProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Router>
+            <ScrollToTop />
+            <AnimatedRoutes />
+          </Router>
+        </CartProvider>
+      </AuthProvider>
+    </NotificationProvider>
   );
 }
 

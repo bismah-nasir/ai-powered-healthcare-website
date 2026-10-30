@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useNotify } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import { 
   Trash2, Plus, Minus, ShoppingBag, MapPin, Phone, 
@@ -15,10 +16,9 @@ function Cart() {
     removeFromCart,
     syncItemStock,
     clearCart,
-    cartSubtotal,
-    showNotice,
-    dismissNotice
+    cartSubtotal
   } = useCart();
+  const { showNotice, dismissNotice } = useNotify();
 
   // Shipping & Checkout form states
   const [shippingAddress, setShippingAddress] = useState('');

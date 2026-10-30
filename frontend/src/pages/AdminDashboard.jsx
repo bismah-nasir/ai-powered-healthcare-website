@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNotify } from '../context/NotificationContext';
 import {
   Users, HeartPulse, Calendar, Mail, Clock,
   Shield, Settings, X,
@@ -8,7 +9,8 @@ import {
 
 function AdminDashboard() {
   const { user } = useAuth();
-  
+  const { showNotice } = useNotify();
+
   // Dashboard states
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,8 +56,19 @@ function AdminDashboard() {
     fetchDashboardStats();
   }, []);
 
+  // Show a failed status update; retrying only helps for server-side (5xx) or connection failures
+  const notifyStatusError = (message, onRetry) => {
+    showNotice({
+      message,
+      tone: 'danger',
+      actions: onRetry ? [{ label: 'Retry', onClick: onRetry }] : [],
+    });
+  };
+
   // Update a support ticket status
   const handleStatusChange = async (ticketId, nextStatus) => {
+    const retry = () => handleStatusChange(ticketId, nextStatus);
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/admin/tickets/${ticketId}`, {
@@ -86,16 +99,21 @@ function AdminDashboard() {
           setSelectedTicket((prev) => ({ ...prev, status: nextStatus }));
         }
       } else {
-        alert(resData.message || 'Failed to update ticket status.');
+        notifyStatusError(
+          resData.message || 'Failed to update ticket status.',
+          response.status >= 500 ? retry : null
+        );
       }
     } catch (err) {
       console.error('[Admin Dashboard] Patch status error:', err.message);
-      alert('Failed to connect to the server.');
+      notifyStatusError('Failed to connect to the server. Ticket status was not updated.', retry);
     }
   };
 
   // Update a pharmacy order status
   const handleOrderStatusChange = async (orderId, nextStatus) => {
+    const retry = () => handleOrderStatusChange(orderId, nextStatus);
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
@@ -126,11 +144,14 @@ function AdminDashboard() {
           setSelectedOrder((prev) => ({ ...prev, status: nextStatus }));
         }
       } else {
-        alert(resData.message || 'Failed to update order status.');
+        notifyStatusError(
+          resData.message || 'Failed to update order status.',
+          response.status >= 500 ? retry : null
+        );
       }
     } catch (err) {
       console.error('[Admin Dashboard] Patch order status error:', err.message);
-      alert('Failed to connect to the server.');
+      notifyStatusError('Failed to connect to the server. Order status was not updated.', retry);
     }
   };
 

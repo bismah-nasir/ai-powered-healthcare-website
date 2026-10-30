@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HeartPulse, Calendar, Clock, Star, Award, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
+import { useNotify } from '../context/NotificationContext';import { HeartPulse, Calendar, Clock, Star, Award, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
 
 function BookDoctor() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { showNotice, dismissNotice } = useNotify();
   const navigate = useNavigate();
 
   // Doctor detail states
@@ -20,6 +21,7 @@ function BookDoctor() {
   // UI states
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [slotsFlagged, setSlotsFlagged] = useState(false);
 
   // Fetch specific doctor profile on load
   useEffect(() => {
@@ -46,9 +48,38 @@ function BookDoctor() {
     fetchDoctorDetails();
   }, [id]);
 
+  const flagSlots = () => {
+    setSlotsFlagged(true);
+    document.getElementById('booking-slots')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleSelectSlot = (slot) => {
+    setSelectedSlot(slot);
+    setSlotsFlagged(false);
+  };
+
+  // Reload the doctor's slots after a rejected booking; returns true if the chosen slot is no longer bookable
+  const refreshSlots = async (slotId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/doctors/${id}`);
+      const resData = await response.json();
+      if (!resData.success) return false;
+
+      setDoctor(resData.data);
+      const slot = resData.data.availableSlots?.find((s) => s._id === slotId);
+      return !slot || slot.isBooked;
+    } catch {
+      return false;
+    }
+  };
+
   // Form submit handler
-  const handleBookingSubmit = async (e) => {
+  const handleBookingSubmit = (e) => {
     e.preventDefault();
+    submitBooking();
+  };
+
+  const submitBooking = async () => {
     if (!user) {
       // Redirect to login if user is not signed in
       navigate('/login');
@@ -56,11 +87,13 @@ function BookDoctor() {
     }
 
     if (!selectedSlot) {
-      alert('Please select an appointment time slot.');
+      flagSlots();
+      showNotice({ message: 'Please select an appointment time slot.', tone: 'warning' });
       return;
     }
 
     setSubmitting(true);
+    dismissNotice();
     const token = localStorage.getItem('token');
 
     try {
@@ -81,12 +114,28 @@ function BookDoctor() {
 
       if (resData.success) {
         setSuccess(true);
+      } else if (response.status >= 500) {
+        showNotice({
+          message: resData.message || 'Booking request failed.',
+          tone: 'danger',
+          actions: [{ label: 'Retry', onClick: submitBooking }],
+        });
       } else {
-        alert(resData.message || 'Booking request failed.');
+        // The slot may have been taken by someone else in the meantime
+        const slotGone = await refreshSlots(selectedSlot._id);
+        if (slotGone) {
+          setSelectedSlot(null);
+          flagSlots();
+        }
+        showNotice({ message: resData.message || 'Booking request failed.', tone: slotGone ? 'warning' : 'danger' });
       }
     } catch (err) {
       console.error('[BookDoctor Page] Submit error:', err.message);
-      alert('Booking request failed. Please check connection and try again.');
+      showNotice({
+        message: 'Booking request failed. Please check connection and try again.',
+        tone: 'danger',
+        actions: [{ label: 'Retry', onClick: submitBooking }],
+      });
     } finally {
       setSubmitting(false);
     }
@@ -223,10 +272,18 @@ function BookDoctor() {
               </div>
 
               {/* Section 1: Availability time slots */}
-              <div className="flex flex-col gap-3">
+              <div
+                id="booking-slots"
+                className={`flex flex-col gap-3 transition-colors ${
+                  slotsFlagged ? 'bg-danger/5 ring-1 ring-danger/40 rounded-2xl p-3 -m-3' : ''
+                }`}
+              >
                 <label className="text-xs font-bold text-text-sub uppercase tracking-wider font-body">
                   Available Slots *
                 </label>
+                {slotsFlagged && (
+                  <p className="text-[10px] font-bold text-danger font-body -mt-1">Please choose an available slot</p>
+                )}
                 
                 {doctor.availableSlots && doctor.availableSlots.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -238,7 +295,7 @@ function BookDoctor() {
                           key={slot._id}
                           type="button"
                           disabled={slot.isBooked}
-                          onClick={() => setSelectedSlot(slot)}
+                          onClick={() => handleSelectSlot(slot)}
                           className={`flex items-center justify-between p-4 rounded-2xl border text-xs font-body transition-all duration-300 ${
                             slot.isBooked
                               ? 'opacity-40 bg-bg-secondary border-border-color cursor-not-allowed text-text-mute'

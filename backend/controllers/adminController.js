@@ -37,7 +37,7 @@ export const getAdminStats = async (req, res) => {
 
     // 3. Fetch recent appointments with populated fields
     const recentAppointments = await Appointment.find()
-      .populate('doctor', 'name specialization email')
+      .populate('doctor', 'name specialization')
       .populate('patient', 'name email')
       .sort({ createdAt: -1 })
       .limit(5);

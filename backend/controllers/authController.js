@@ -234,7 +234,9 @@ export const forgotPassword = async (req, res) => {
       .digest('hex');
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    await user.save();
+    // Only validate the fields changed here, so accounts created before newer
+    // schema limits (e.g. name length) can still recover their password
+    await user.save({ validateModifiedOnly: true });
 
     // 3. Create reset URL pointing to frontend router page
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -271,7 +273,7 @@ export const forgotPassword = async (req, res) => {
       // Clear token columns if email send fails
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       return res.status(500).json({
         success: false,
@@ -310,6 +312,13 @@ export const resetPassword = async (req, res) => {
       });
     }
 
+    if (password.length > 72) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password cannot exceed 72 characters',
+      });
+    }
+
     // 1. Hash incoming token to match with saved database hash
     const resetPasswordToken = crypto
       .createHash('sha256')
@@ -334,7 +343,8 @@ export const resetPassword = async (req, res) => {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 
-    await user.save();
+    // The new password is still validated because it is a modified field
+    await user.save({ validateModifiedOnly: true });
 
     res.status(200).json({
       success: true,

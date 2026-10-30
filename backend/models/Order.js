@@ -33,11 +33,13 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Shipping address is required'],
       trim: true,
+      maxlength: [300, 'Shipping address cannot exceed 300 characters'],
     },
     contactPhone: {
       type: String,
       required: [true, 'Contact phone number is required'],
       trim: true,
+      maxlength: [20, 'Contact phone number cannot exceed 20 characters'],
     },
     paymentMethod: {
       type: String,

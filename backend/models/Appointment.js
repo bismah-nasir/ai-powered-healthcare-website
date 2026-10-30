@@ -27,6 +27,7 @@ const appointmentSchema = new mongoose.Schema(
     symptoms: {
       type: String,
       trim: true,
+      maxlength: [1000, 'Symptoms cannot exceed 1000 characters'],
       default: '',
     },
     status: {

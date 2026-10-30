@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import Appointment from '../models/Appointment.js';
 import Doctor from '../models/Doctor.js';
 
+const SYMPTOMS_MAX_LENGTH = 1000; // Keep in sync with the Appointment schema maxlength
+
 /**
  * @desc    Book a new appointment
  * @route   POST /api/appointments
@@ -45,6 +47,14 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
+    // Symptoms are optional free text; reject anything that isn't a reasonably sized string
+    if (symptoms !== undefined && (typeof symptoms !== 'string' || symptoms.length > SYMPTOMS_MAX_LENGTH)) {
+      return res.status(400).json({
+        success: false,
+        message: `Symptoms must be text of at most ${SYMPTOMS_MAX_LENGTH} characters`,
+      });
+    }
+
     // 5. ATOMIC UPDATE: Mark slot as booked inside Doctor document
     // We query with the condition that isBooked is still false to prevent concurrency race conditions.
     // $elemMatch makes both conditions apply to the same slot, so $ points at that slot.
@@ -77,7 +87,20 @@ export const bookAppointment = async (req, res) => {
       consultationFee: doctor.consultationFee,
     });
 
-    await appointment.save();
+    try {
+      await appointment.save();
+    } catch (saveError) {
+      // The slot is already marked booked, so give it back or it stays locked with no appointment
+      try {
+        await Doctor.updateOne(
+          { _id: doctorId, availableSlots: { $elemMatch: { _id: slotId, isBooked: true } } },
+          { $set: { 'availableSlots.$.isBooked': false } }
+        );
+      } catch (releaseError) {
+        console.error(`[Appointment Controller] Slot release failed: ${releaseError.message}`);
+      }
+      throw saveError;
+    }
 
     res.status(201).json({
       success: true,
@@ -85,6 +108,14 @@ export const bookAppointment = async (req, res) => {
       data: appointment,
     });
   } catch (error) {
+    // Safety net for any schema rule not covered by the checks above
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors)[0].message,
+      });
+    }
+
     console.error(`[Appointment Controller] Booking error: ${error.message}`);
     res.status(500).json({
       success: false,

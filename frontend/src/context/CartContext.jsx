@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import Toast from '../components/common/Toast';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useNotify } from './NotificationContext';
 
 const CartContext = createContext();
 
@@ -13,19 +13,12 @@ export const CartProvider = ({ children }) => {
     return savedCart ? JSON.parse(savedCart) : [];
   });
 
-  // In-app alert: { id, message, tone, actions }
-  const [notice, setNotice] = useState(null);
+  const { showNotice } = useNotify();
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
-
-  const showNotice = useCallback(({ message, tone = 'warning', actions = [] }) => {
-    setNotice({ id: Date.now(), message, tone, actions });
-  }, []);
-
-  const dismissNotice = useCallback(() => setNotice(null), []);
 
   // Add item to cart
   const addToCart = (item) => {
@@ -105,20 +98,9 @@ export const CartProvider = ({ children }) => {
         clearCart,
         cartCount,
         cartSubtotal,
-        showNotice,
-        dismissNotice,
       }}
     >
       {children}
-      {notice && (
-        <Toast
-          key={notice.id}
-          message={notice.message}
-          tone={notice.tone}
-          actions={notice.actions}
-          onClose={dismissNotice}
-        />
-      )}
     </CartContext.Provider>
   );
 };

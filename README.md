@@ -109,6 +109,37 @@ The frontend calls the backend at `http://localhost:5000` by default. To use a d
 
 ---
 
+## ☁️ Deploying to Vercel
+
+The frontend and backend are deployed as two separate Vercel projects from the same repository.
+
+### 1. Backend
+1.  In Vercel, choose **Add New → Project**, import this repository and set **Root Directory** to `backend`.
+2.  Add these environment variables (see [`backend/.env.example`](./backend/.env.example)):
+    *   `MONGODB_URI` and `JWT_SECRET` (required)
+    *   `CLIENT_URL`: the frontend's Vercel address, for example `https://pulsecare.vercel.app` (needed for CORS and password reset links). You can add it after deploying the frontend, then redeploy.
+    *   `GEMINI_API_KEY`, `SMTP_*` and `FROM_EMAIL` (optional, same as local)
+    *   Leave out `PORT` and `DNS_SERVERS`.
+3.  Deploy, then open `https://<backend-address>/ping` to check that it responds.
+
+On Vercel the API runs as a serverless function: [`backend/api/index.js`](./backend/api/index.js) connects to MongoDB (reusing the connection between requests) and hands each request to the Express app. [`backend/vercel.json`](./backend/vercel.json) sends every request to it. `npm run dev` and `server.js` still work as before locally.
+
+### 2. Frontend
+1.  Import the repository again as a second project and set **Root Directory** to `frontend`. Vercel detects Vite automatically.
+2.  Add `VITE_API_URL` with the backend's Vercel address (no `/api` or trailing slash), then deploy. If you change it later, redeploy, because Vite builds the value into the app.
+
+[`frontend/vercel.json`](./frontend/vercel.json) sends every page address to `index.html`, so links like `/doctors` work when opened directly or refreshed.
+
+### 3. Database
+*   In MongoDB Atlas, open **Network Access** and allow `0.0.0.0/0`. Vercel does not use fixed IP addresses.
+*   To add the sample data, run `npm run seed` on your computer with `MONGODB_URI` in `backend/.env` pointing at the production database. **Change the demo account passwords afterwards**, because the site is public.
+
+### Limitations
+*   **Rate limits are per instance**: the limiter keeps its counters in memory. Vercel may run several copies of the function at once and starts fresh ones after idle periods, so each copy counts separately and limits are looser than locally. This is fine for a demo; a production site would use a shared store such as Redis.
+*   **Cold starts**: the first request after a quiet period takes a few seconds while the function starts and connects to MongoDB.
+
+---
+
 ## 📸 Screenshots & Previews
 
 ### 1. Intro Screen

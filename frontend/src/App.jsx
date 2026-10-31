@@ -15,6 +15,7 @@ import Doctors from './pages/Doctors';
 import BookDoctor from './pages/BookDoctor';
 import MyAppointments from './pages/MyAppointments';
 import MyOrders from './pages/MyOrders';
+import MyLabTests from './pages/MyLabTests';
 import Medicines from './pages/Medicines';
 import Labs from './pages/Labs';
 import Emergency from './pages/Emergency';
@@ -60,6 +61,7 @@ function AnimatedRoutes() {
           <Route element={<ProtectedRoute />}>
             <Route path="/my-appointments" element={<PageTransition><MyAppointments /></PageTransition>} />
             <Route path="/my-orders" element={<PageTransition><MyOrders /></PageTransition>} />
+            <Route path="/my-lab-tests" element={<PageTransition><MyLabTests /></PageTransition>} />
           </Route>
           <Route element={<ProtectedRoute role="admin" />}>
             <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />

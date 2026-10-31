@@ -1,6 +1,7 @@
 // Simple in-memory per-IP rate limiter (fixed window, one minute by default).
 // Protects API quotas such as Gemini requests-per-minute limits and slows down abuse of public auth/contact forms.
 // Each call creates its own counter, so every route gets a separate budget.
+// Counters live in this process only: on Vercel each running function instance counts separately.
 export const rateLimit = ({ windowMs = 60 * 1000, max = 5, message } = {}) => {
   const hits = new Map();
 

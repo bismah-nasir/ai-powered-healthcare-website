@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { Search, Calendar, Clock, AlertTriangle, ShieldAlert, HeartPulse, CheckCircle, Info, User, Phone } from 'lucide-react';
@@ -26,8 +26,12 @@ const toDateInputValue = (date) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
+// The server stores the collection day as midnight UTC, so read it back in UTC to show the same day
+const formatCollectionDate = (value) =>
+  new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
 function Labs() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { showNotice, dismissNotice } = useNotify();
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,7 +53,7 @@ function Labs() {
   
   // Checkout flow feedback states
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [confirmedBooking, setConfirmedBooking] = useState(null); // Booking saved by the server, shown in the receipt
 
   // Sync patient details when user state loads (adjusting state during render instead of in an effect)
   const [syncedUser, setSyncedUser] = useState(user);
@@ -132,14 +136,38 @@ function Labs() {
     setBookingSubmitting(true);
     dismissNotice();
     try {
-      // Simulate API saving delay
-      // In a production app, we write a document to the LabOrders/Appointments collection
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setBookingSuccess(true);
-      setBookingModalOpen(false);
-    } catch {
+      const { status, data: resData } = await apiRequest('/api/lab-bookings', {
+        method: 'POST',
+        token,
+        body: {
+          labTestId: selectedTest._id,
+          patientName,
+          contactPhone: patientPhone,
+          collectionDate: bookingDate,
+        },
+      });
+
+      if (status === 401) {
+        // Session ended (the expiry notice is already shown): sign in again and return here
+        setBookingModalOpen(false);
+        navigate('/login', { state: rememberPage(location) });
+      } else if (resData.success) {
+        setConfirmedBooking(resData.data);
+        setBookingModalOpen(false);
+      } else if (status >= 500) {
+        showNotice({
+          message: resData.message || 'Booking request failed.',
+          tone: 'danger',
+          actions: [{ label: 'Retry', onClick: submitLabBooking }],
+        });
+      } else {
+        // Invalid details or the test was removed from the catalog: retrying as-is won't help
+        showNotice({ message: resData.message || 'Booking request failed.', tone: 'warning' });
+      }
+    } catch (err) {
+      console.error('[Labs Page] Booking error:', err.message);
       showNotice({
-        message: 'Booking request failed. Please try again.',
+        message: 'Booking request failed. Please check connection and try again.',
         tone: 'danger',
         actions: [{ label: 'Retry', onClick: submitLabBooking }],
       });
@@ -154,7 +182,7 @@ function Labs() {
   };
 
   const handleCloseSuccess = () => {
-    setBookingSuccess(false);
+    setConfirmedBooking(null);
     setSelectedTest(null);
   };
 
@@ -444,7 +472,7 @@ function Labs() {
       )}
 
       {/* BOOKING SUCCESS RECEIPT MODAL */}
-      {bookingSuccess && selectedTest && (
+      {confirmedBooking && selectedTest && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="m-auto w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
             <div className="w-14 h-14 bg-success/10 flex items-center justify-center rounded-full">
@@ -454,30 +482,38 @@ function Labs() {
             <div>
               <h3 className="text-xl font-bold text-text-main font-headings">Diagnostics Scheduled!</h3>
               <p className="text-xs text-text-sub font-body leading-relaxed mt-2 max-w-sm">
-                Your diagnostic booking for <strong className="text-text-main">{selectedTest.name}</strong> has been successfully registered.
+                Your diagnostic booking for <strong className="text-text-main">{confirmedBooking.testName}</strong> has been successfully registered.
               </p>
             </div>
 
             {/* Receipt Summary details */}
             <div className="w-full bg-bg-secondary/40 border border-border-color rounded-2xl p-5 flex flex-col gap-2 text-xs text-left font-body">
               <p className="text-text-mute uppercase tracking-wider font-bold border-b border-border-color pb-1.5">Checkup Details</p>
-              <p className="text-text-sub">Patient: <strong className="text-text-main">{patientName}</strong></p>
-              <p className="text-text-sub">Contact: <strong className="text-text-main">{patientPhone}</strong></p>
-              <p className="text-text-sub">Scheduled Date: <strong className="text-text-main">{bookingDate}</strong></p>
+              <p className="text-text-sub">Patient: <strong className="text-text-main">{confirmedBooking.patientName}</strong></p>
+              <p className="text-text-sub">Contact: <strong className="text-text-main">{confirmedBooking.contactPhone}</strong></p>
+              <p className="text-text-sub">Scheduled Date: <strong className="text-text-main">{formatCollectionDate(confirmedBooking.collectionDate)}</strong></p>
               <p className="text-text-sub">Preparation: <strong className="text-yellow-600 dark:text-yellow-400">{selectedTest.fastingRequired ? 'Fasting Required' : 'No Fasting'}</strong></p>
               <p className="text-text-sub mt-1 pt-1.5 border-t border-border-color flex justify-between font-bold">
-                <span>Total Paid:</span>
-                <span className="text-primary text-sm font-headings">Rs {selectedTest.price}</span>
+                <span>Test Fee:</span>
+                <span className="text-primary text-sm font-headings">Rs {confirmedBooking.price}</span>
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleCloseSuccess}
-              className="btn btn-primary w-full py-3.5 rounded-2xl text-xs font-semibold"
-            >
-              Back to Catalog
-            </button>
+            <div className="w-full flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={handleCloseSuccess}
+                className="btn btn-secondary flex-1 py-3.5 rounded-2xl text-xs font-semibold"
+              >
+                Back to Catalog
+              </button>
+              <Link
+                to="/my-lab-tests"
+                className="btn btn-primary flex-1 py-3.5 rounded-2xl text-xs font-semibold text-center whitespace-nowrap"
+              >
+                View My Lab Tests
+              </Link>
+            </div>
           </div>
         </div>
       )}

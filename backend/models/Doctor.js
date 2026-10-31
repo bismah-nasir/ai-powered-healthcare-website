@@ -66,6 +66,11 @@ const doctorSchema = new mongoose.Schema(
           type: String,
           required: [true, 'Please specify slot time (e.g. 10:00 AM)'],
         },
+        // Calendar date the slot is offered or booked for (midnight UTC). Optional: when it is
+        // missing or past, the API offers the slot on its next weekday (see utils/slotDates.js)
+        date: {
+          type: Date,
+        },
         isBooked: {
           type: Boolean,
           default: false,

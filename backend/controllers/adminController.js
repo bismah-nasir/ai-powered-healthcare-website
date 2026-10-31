@@ -7,13 +7,13 @@ import Contact from '../models/Contact.js';
 import Order from '../models/Order.js';
 
 /**
- * @desc    Get portal stats and recent logs
+ * @desc    Get portal record counts
  * @route   GET /api/admin/stats
  * @access  Private (Admin only)
  */
 export const getAdminStats = async (req, res) => {
   try {
-    // 1. Gather document counts concurrently
+    // Gather document counts concurrently
     const [
       totalPatients,
       totalDoctors,
@@ -30,24 +30,7 @@ export const getAdminStats = async (req, res) => {
       Order.countDocuments(),
     ]);
 
-    // 2. Fetch recent support tickets
-    const recentTickets = await Contact.find()
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    // 3. Fetch recent appointments with populated fields
-    const recentAppointments = await Appointment.find()
-      .populate('doctor', 'name specialization')
-      .populate('patient', 'name email')
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    // 4. Fetch recent pharmacy orders with populated patient
-    const recentOrders = await Order.find()
-      .populate('patient', 'name email')
-      .sort({ createdAt: -1 })
-      .limit(5);
-
+    // The full appointment, ticket and order lists have their own endpoints, so only counts are returned here
     res.status(200).json({
       success: true,
       data: {
@@ -59,9 +42,6 @@ export const getAdminStats = async (req, res) => {
           totalTickets,
           totalOrders,
         },
-        recentTickets,
-        recentAppointments,
-        recentOrders,
       },
     });
   } catch (error) {

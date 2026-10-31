@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { apiRequest } from '../services/api';
 import ImageWithFallback from '../components/common/ImageWithFallback';
+import { formatAppointmentDate, isAppointmentPast } from '../utils/appointmentDate';
 import { Calendar, Clock, FileText, AlertCircle, XCircle, CheckCircle } from 'lucide-react';
 
 // Fetch appointments list, resolving to { data } on success or { error } on failure
@@ -111,9 +112,7 @@ function MyAppointments() {
   };
 
   // Filter list into tabs
-  const upcomingAppointments = appointments.filter(
-    (app) => app.status === 'confirmed' || app.status === 'pending'
-  );
+  const upcomingAppointments = appointments.filter((app) => app.status === 'confirmed');
   
   const historyAppointments = appointments.filter(
     (app) => app.status === 'completed' || app.status === 'cancelled'
@@ -124,12 +123,6 @@ function MyAppointments() {
   // Status badge styling helper
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'confirmed':
-        return (
-          <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-success bg-success/5 border border-success/10 px-2.5 py-1 rounded-full">
-            <CheckCircle className="w-3 h-3" /> Confirmed
-          </span>
-        );
       case 'cancelled':
         return (
           <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-danger bg-danger/5 border border-danger/10 px-2.5 py-1 rounded-full">
@@ -144,8 +137,8 @@ function MyAppointments() {
         );
       default:
         return (
-          <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-secondary bg-secondary/5 border border-secondary/10 px-2.5 py-1 rounded-full">
-            Pending
+          <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-success bg-success/5 border border-success/10 px-2.5 py-1 rounded-full">
+            <CheckCircle className="w-3 h-3" /> Confirmed
           </span>
         );
     }
@@ -244,7 +237,9 @@ function MyAppointments() {
           <div className="flex flex-col gap-4">
             {activeAppointmentsList.map((app, idx) => {
               const docInfo = app.doctor || {};
-              const isUpcoming = app.status === 'confirmed' || app.status === 'pending';
+              const isUpcoming = app.status === 'confirmed';
+              // Once the visit day is over it can't be cancelled; it stays here until the clinic marks it completed
+              const isPast = isAppointmentPast(app);
 
               return (
                 <div
@@ -282,7 +277,7 @@ function MyAppointments() {
                       {/* Schedule detail markers */}
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 text-xs text-text-sub font-body">
                         <span className="flex items-center gap-1.5 font-semibold text-text-main">
-                          <Calendar className="w-4 h-4 text-primary" /> {app.day}
+                          <Calendar className="w-4 h-4 text-primary" /> {formatAppointmentDate(app)}
                         </span>
                         <span className="flex items-center gap-1.5 font-semibold text-text-main">
                           <Clock className="w-4 h-4 text-secondary" /> {app.time}
@@ -307,8 +302,14 @@ function MyAppointments() {
                       </div>
                     )}
 
-                    {/* Cancel action trigger */}
-                    {isUpcoming && (
+                    {/* Past visits can't be cancelled; upcoming ones get the cancel action */}
+                    {isUpcoming && isPast && (
+                      <p className="text-[10px] text-text-mute font-body font-semibold sm:text-right">
+                        Visit date has passed · awaiting completion by the clinic
+                      </p>
+                    )}
+
+                    {isUpcoming && !isPast && (
                       <button
                         type="button"
                         disabled={cancellingId === app._id}
@@ -342,7 +343,7 @@ function MyAppointments() {
               <p className="text-xs text-text-sub font-body leading-relaxed mt-2">
                 Are you sure you want to cancel your consultation with{' '}
                 <strong className="text-text-main">{selectedAppointment?.doctor?.name}</strong> on{' '}
-                <strong className="text-text-main">{selectedAppointment?.day}</strong> at{' '}
+                <strong className="text-text-main">{formatAppointmentDate(selectedAppointment)}</strong> at{' '}
                 <strong className="text-text-main">{selectedAppointment?.time}</strong>? This action cannot be undone.
               </p>
             </div>

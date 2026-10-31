@@ -3,8 +3,10 @@ import {
   bookAppointment,
   getMyAppointments,
   cancelAppointment,
+  getAllAppointments,
+  completeAppointment,
 } from '../controllers/appointmentController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -15,5 +17,9 @@ router.use(protect);
 router.post('/', bookAppointment);
 router.get('/my', getMyAppointments);
 router.put('/:id/cancel', cancelAppointment);
+
+// Admin-only endpoints
+router.get('/', adminOnly, getAllAppointments);
+router.patch('/:id/complete', adminOnly, completeAppointment);
 
 export default router;

@@ -20,6 +20,11 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Appointment day is required'],
     },
+    // Calendar date of the visit (midnight UTC), copied from the slot at booking time.
+    // Appointments booked before slots had dates only have `day`.
+    date: {
+      type: Date,
+    },
     time: {
       type: String,
       required: [true, 'Appointment time is required'],
@@ -32,8 +37,8 @@ const appointmentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-      default: 'confirmed', // Standard auto-confirm for demo dashboard convenience
+      enum: ['confirmed', 'cancelled', 'completed'],
+      default: 'confirmed', // Bookings are confirmed straight away; there is no approval step
     },
     consultationFee: {
       type: Number,

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { apiRequest } from '../services/api';
 import { rememberPage } from '../utils/authRedirect';
+import { formatSlotDate, formatAppointmentDate } from '../utils/appointmentDate';
 import ImageWithFallback from '../components/common/ImageWithFallback';
 import { HeartPulse, Calendar, Clock, Star, Award, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
 
@@ -25,7 +26,7 @@ function BookDoctor() {
   
   // UI states
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [bookedAppointment, setBookedAppointment] = useState(null); // Set once the booking succeeds
   const [slotsFlagged, setSlotsFlagged] = useState(false);
 
   // Fetch specific doctor profile on load
@@ -113,7 +114,7 @@ function BookDoctor() {
         // Session ended (the expiry notice is already shown): sign in again and return here
         navigate('/login', { state: rememberPage(location) });
       } else if (resData.success) {
-        setSuccess(true);
+        setBookedAppointment(resData.data);
       } else if (status >= 500) {
         showNotice({
           message: resData.message || 'Booking request failed.',
@@ -200,7 +201,7 @@ function BookDoctor() {
         </Link>
 
         {/* WIZARD CONTAINER */}
-        {!success ? (
+        {!bookedAppointment ? (
           <div className="w-full flex flex-col md:flex-row gap-8 items-start">
             
             {/* LEFT COLUMN: Doctor Full Profile */}
@@ -313,7 +314,7 @@ function BookDoctor() {
                         >
                           <div className="flex items-center gap-2">
                             <Calendar className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-primary'}`} />
-                            <span className="font-semibold">{slot.day}</span>
+                            <span className="font-semibold">{slot.date ? formatSlotDate(slot.date) : slot.day}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <Clock className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-secondary'}`} />
@@ -356,7 +357,7 @@ function BookDoctor() {
                   <p className="text-text-mute uppercase tracking-wider font-bold">Booking Summary</p>
                   <p className="text-text-sub">
                     Consultation with <strong className="text-text-main">{doctor.name}</strong> on{' '}
-                    <strong className="text-text-main">{selectedSlot.day}</strong> at{' '}
+                    <strong className="text-text-main">{formatAppointmentDate(selectedSlot)}</strong> at{' '}
                     <strong className="text-text-main">{selectedSlot.time}</strong>.
                   </p>
                   <p className="text-text-sub">
@@ -381,7 +382,7 @@ function BookDoctor() {
             </form>
           </div>
         ) : (
-          /* SUCCESS VIEW: Renders after mock booking completes */
+          /* SUCCESS VIEW: Renders after the booking is saved */
           <div className="w-full max-w-xl mx-auto glass-panel rounded-3xl p-12 flex flex-col items-center text-center gap-6 animate-fade-in">
             <div className="w-16 h-16 bg-success/10 flex items-center justify-center rounded-full">
               <CheckCircle className="w-10 h-10 text-success" />
@@ -391,7 +392,7 @@ function BookDoctor() {
               <h3 className="text-2xl font-bold text-text-main font-headings">Appointment Scheduled!</h3>
               <p className="text-sm text-text-sub font-body mt-2 leading-relaxed max-w-md">
                 Your consultation request with <strong className="text-text-main">{doctor.name}</strong> on{' '}
-                <strong className="text-primary">{selectedSlot.day} at {selectedSlot.time}</strong> has been successfully booked.
+                <strong className="text-primary">{formatAppointmentDate(bookedAppointment)} at {bookedAppointment.time}</strong> has been successfully booked.
               </p>
             </div>
 
@@ -400,7 +401,7 @@ function BookDoctor() {
               <p className="text-text-sub">Patient name: <strong className="text-text-main">{user?.name}</strong></p>
               <p className="text-text-sub">Consultant: <strong className="text-text-main">{doctor.name}</strong></p>
               <p className="text-text-sub">Specialty: <strong className="text-text-main">{doctor.specialization}</strong></p>
-              <p className="text-text-sub">Price paid: <strong className="text-text-main">Rs {doctor.consultationFee}</strong></p>
+              <p className="text-text-sub">Price paid: <strong className="text-text-main">Rs {bookedAppointment.consultationFee}</strong></p>
             </div>
 
             <div className="w-full flex flex-col sm:flex-row gap-3">

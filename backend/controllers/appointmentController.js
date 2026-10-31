@@ -1,8 +1,21 @@
 import mongoose from 'mongoose';
 import Appointment from '../models/Appointment.js';
 import Doctor from '../models/Doctor.js';
+import { DAY_MS, currentSlotDate, startOfUtcDay } from '../utils/slotDates.js';
 
 const SYMPTOMS_MAX_LENGTH = 1000; // Keep in sync with the Appointment schema maxlength
+const WEEK_MS = 7 * DAY_MS;
+
+// Mark an appointment's slot free again. Only a slot that is still booked is touched,
+// and `extra` can set other slot fields at the same time (e.g. move its date on a week).
+const releaseSlot = (appointment, extra = {}) =>
+  Doctor.updateOne(
+    {
+      _id: appointment.doctor,
+      availableSlots: { $elemMatch: { _id: appointment.slotId, isBooked: true } },
+    },
+    { $set: { 'availableSlots.$.isBooked': false, ...extra } }
+  );
 
 /**
  * @desc    Book a new appointment
@@ -55,7 +68,16 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
-    // 5. ATOMIC UPDATE: Mark slot as booked inside Doctor document
+    // The calendar date this slot is offered for right now (the same date the doctor page shows)
+    const slotDate = currentSlotDate(slot);
+    if (!slotDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'This time slot has no valid weekday. Please choose another slot.',
+      });
+    }
+
+    // 5. ATOMIC UPDATE: Mark slot as booked for that date inside Doctor document
     // We query with the condition that isBooked is still false to prevent concurrency race conditions.
     // $elemMatch makes both conditions apply to the same slot, so $ points at that slot.
     const updatedDoctor = await Doctor.findOneAndUpdate(
@@ -64,7 +86,7 @@ export const bookAppointment = async (req, res) => {
         availableSlots: { $elemMatch: { _id: slotId, isBooked: false } }, // Concurrency guard
       },
       {
-        $set: { 'availableSlots.$.isBooked': true },
+        $set: { 'availableSlots.$.isBooked': true, 'availableSlots.$.date': slotDate },
       },
       { returnDocument: 'after' }
     );
@@ -82,6 +104,7 @@ export const bookAppointment = async (req, res) => {
       doctor: doctorId,
       slotId,
       day: slot.day,
+      date: slotDate,
       time: slot.time,
       symptoms,
       consultationFee: doctor.consultationFee,
@@ -92,10 +115,7 @@ export const bookAppointment = async (req, res) => {
     } catch (saveError) {
       // The slot is already marked booked, so give it back or it stays locked with no appointment
       try {
-        await Doctor.updateOne(
-          { _id: doctorId, availableSlots: { $elemMatch: { _id: slotId, isBooked: true } } },
-          { $set: { 'availableSlots.$.isBooked': false } }
-        );
+        await releaseSlot(appointment);
       } catch (releaseError) {
         console.error(`[Appointment Controller] Slot release failed: ${releaseError.message}`);
       }
@@ -192,10 +212,19 @@ export const cancelAppointment = async (req, res) => {
       });
     }
 
+    // A visit whose day has gone by can't be cancelled (the admin completes it instead).
+    // "Today" is the patient's local day, which can be one day behind UTC, so allow yesterday in UTC terms as well.
+    if (appointment.date && appointment.date.getTime() < startOfUtcDay().getTime() - DAY_MS) {
+      return res.status(400).json({
+        success: false,
+        message: 'This appointment date has already passed, so it can no longer be cancelled',
+      });
+    }
+
     // 4. Update status only if it is still cancellable, so a repeated cancel request
     // can't unlock the slot again after someone else has booked it
     const cancelled = await Appointment.findOneAndUpdate(
-      { _id: appointment._id, status: { $in: ['pending', 'confirmed'] } },
+      { _id: appointment._id, status: 'confirmed' },
       { status: 'cancelled' },
       { returnDocument: 'after' }
     );
@@ -207,16 +236,8 @@ export const cancelAppointment = async (req, res) => {
       });
     }
 
-    // 5. Unlock the slot in the Doctor document
-    await Doctor.findOneAndUpdate(
-      {
-        _id: appointment.doctor,
-        'availableSlots._id': appointment.slotId,
-      },
-      {
-        $set: { 'availableSlots.$.isBooked': false },
-      }
-    );
+    // 5. Unlock the slot in the Doctor document (it is offered again for the same date)
+    await releaseSlot(appointment);
 
     res.status(200).json({
       success: true,
@@ -228,6 +249,110 @@ export const cancelAppointment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error, cancellation failed',
+    });
+  }
+};
+
+/**
+ * @desc    Get all appointments (for Admin dashboard)
+ * @route   GET /api/appointments
+ * @access  Private (Admin only)
+ */
+export const getAllAppointments = async (req, res) => {
+  try {
+    const appointments = await Appointment.find()
+      .populate('doctor', 'name specialization')
+      .populate('patient', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: appointments.length,
+      data: appointments,
+    });
+  } catch (error) {
+    console.error(`[Appointment Controller] Fetch all appointments error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: 'Server error, could not retrieve appointment records',
+    });
+  }
+};
+
+/**
+ * @desc    Mark an appointment as completed and free its slot for the next week
+ * @route   PATCH /api/appointments/:id/complete
+ * @access  Private (Admin only)
+ */
+export const completeAppointment = async (req, res) => {
+  try {
+    // 1. Fetch appointment and verify it exists (malformed IDs count as not found)
+    const appointment = mongoose.isValidObjectId(req.params.id)
+      ? await Appointment.findById(req.params.id)
+      : null;
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found',
+      });
+    }
+
+    // 2. Only upcoming appointments can be completed
+    if (appointment.status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment is already completed',
+      });
+    }
+
+    if (appointment.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cancelled appointments cannot be completed',
+      });
+    }
+
+    // 3. A visit can't be completed before its day. "Today" is the admin's local day,
+    // which can be one day ahead of UTC, so allow tomorrow in UTC terms as well.
+    if (appointment.date && appointment.date.getTime() > startOfUtcDay().getTime() + DAY_MS) {
+      return res.status(400).json({
+        success: false,
+        message: 'This appointment has not taken place yet. It can be completed from its scheduled date.',
+      });
+    }
+
+    // 4. Update status only if it is still open, so a repeated request can't free the slot
+    // again after someone else has booked it
+    const completed = await Appointment.findOneAndUpdate(
+      { _id: appointment._id, status: 'confirmed' },
+      { status: 'completed' },
+      { returnDocument: 'after' }
+    );
+
+    if (!completed) {
+      return res.status(409).json({
+        success: false,
+        message: 'This appointment was just updated. Please refresh and try again.',
+      });
+    }
+
+    // 5. Free the slot. Its booked date is used up, so it is offered again a week later
+    // (or on its next weekday after that, if that date has passed too).
+    await releaseSlot(
+      appointment,
+      appointment.date ? { 'availableSlots.$.date': new Date(appointment.date.getTime() + WEEK_MS) } : {}
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Appointment marked as completed',
+      data: completed,
+    });
+  } catch (error) {
+    console.error(`[Appointment Controller] Completion error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: 'Server error, could not complete appointment',
     });
   }
 };

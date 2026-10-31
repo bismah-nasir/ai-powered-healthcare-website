@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Doctor from '../models/Doctor.js';
 import escapeRegex from '../utils/escapeRegex.js';
+import { withSlotDates } from '../utils/slotDates.js';
 
 /**
  * @desc    Get all doctors (with search and department filters)
@@ -33,7 +34,7 @@ export const getDoctors = async (req, res) => {
     res.status(200).json({
       success: true,
       count: doctors.length,
-      data: doctors,
+      data: doctors.map((doctor) => withSlotDates(doctor)),
     });
   } catch (error) {
     console.error(`[Doctor Controller] Get Doctors error: ${error.message}`);
@@ -65,7 +66,7 @@ export const getDoctorById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: doctor,
+      data: withSlotDates(doctor),
     });
   } catch (error) {
     console.error(`[Doctor Controller] Get Doctor By ID error: ${error.message}`);

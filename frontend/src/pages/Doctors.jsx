@@ -4,6 +4,7 @@ import { Search, Calendar, Star, Award, ArrowRight, HeartPulse, X, Wallet } from
 import { apiRequest, isAbortError } from '../services/api';
 import CategoryFilter from '../components/common/CategoryFilter';
 import ImageWithFallback from '../components/common/ImageWithFallback';
+import { formatSlotDate } from '../utils/appointmentDate';
 
 // Department Category List matching Mongoose schema enums
 const DEPARTMENTS = [
@@ -176,7 +177,7 @@ function Doctors() {
                 {doctors.map((doctor, idx) => {
                   const openSlot = doctor.availableSlots?.find((slot) => !slot.isBooked);
                   const nextSlot = openSlot
-                    ? `${openSlot.day} at ${openSlot.time}`
+                    ? `${openSlot.date ? formatSlotDate(openSlot.date) : openSlot.day} at ${openSlot.time}`
                     : doctor.availableSlots?.length ? 'Fully booked' : 'No slots available';
 
                   return (

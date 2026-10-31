@@ -4,15 +4,25 @@ import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { apiRequest } from '../services/api';
 import OrderStatusBadge from '../components/common/OrderStatusBadge';
+import { formatAppointmentDate, formatSlotDate, isAppointmentDue } from '../utils/appointmentDate';
 import {
   Users, HeartPulse, Calendar, Mail, Clock,
-  Shield, Settings, X,
+  Shield, Settings, X, CheckCircle,
   ShoppingBag, CreditCard, MapPin,
   Search, AlertCircle, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-// Rows shown per page in the full ticket and order lists
+// Rows shown per page in the full appointment, ticket and order lists
 const PAGE_SIZE = 10;
+
+const APPOINTMENT_STATUSES = [
+  { value: 'confirmed', label: 'Confirmed', className: 'text-blue-500 bg-blue-500/5 border-blue-500/10' },
+  { value: 'completed', label: 'Completed', className: 'text-success bg-success/5 border-success/10' },
+  { value: 'cancelled', label: 'Cancelled', className: 'text-text-mute bg-text-mute/5 border-text-mute/10' },
+];
+
+// Confirmed appointments are the open ones that can be marked completed
+const isOpenAppointment = (appt) => appt.status === 'confirmed';
 
 const TICKET_STATUSES = [
   { value: 'unread', label: 'Unread' },
@@ -50,6 +60,7 @@ const requestList = async (path, token, failMessage) => {
   }
 };
 
+const requestAppointments = (token) => requestList('/api/appointments', token, 'Failed to load doctor bookings.');
 const requestTickets = (token) => requestList('/api/contact', token, 'Failed to load support tickets.');
 const requestOrders = (token) => requestList('/api/orders', token, 'Failed to load pharmacy orders.');
 
@@ -78,6 +89,17 @@ const filterAndPage = (items, { status, query, page }, getSearchFields) => {
     rows: filtered.slice(start, start + PAGE_SIZE),
   };
 };
+
+// Color-coded pill for an appointment status
+function AppointmentStatusBadge({ status }) {
+  const { label, className } = APPOINTMENT_STATUSES.find((s) => s.value === status) || APPOINTMENT_STATUSES[0];
+
+  return (
+    <span className={`inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider border px-2 py-0.5 rounded-md whitespace-nowrap ${className}`}>
+      {label}
+    </span>
+  );
+}
 
 // Search box and status filter above a full list
 function ListToolbar({ query, onQueryChange, searchLabel, placeholder, status, onStatusChange, statuses, items }) {
@@ -186,18 +208,26 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Full ticket and order lists (null while loading)
+  // Full appointment, ticket and order lists (null while loading)
+  const [appointments, setAppointments] = useState(null);
+  const [appointmentsError, setAppointmentsError] = useState('');
   const [tickets, setTickets] = useState(null);
   const [ticketsError, setTicketsError] = useState('');
   const [orders, setOrders] = useState(null);
   const [ordersError, setOrdersError] = useState('');
 
   // Search, status filter and page of each full list
+  const [appointmentView, setAppointmentView] = useState({ status: 'all', query: '', page: 1 });
   const [ticketView, setTicketView] = useState({ status: 'all', query: '', page: 1 });
   const [orderView, setOrderView] = useState({ status: 'all', query: '', page: 1 });
 
   // Active list tab: 'appointments', 'tickets', 'orders'
   const [activeTab, setActiveTab] = useState('appointments');
+
+  // Appointment waiting for the admin to confirm completion, and the one being completed
+  const [completeTargetId, setCompleteTargetId] = useState(null);
+  const [completingId, setCompletingId] = useState(null);
+  const completeTarget = appointments?.find((a) => a._id === completeTargetId) || null;
 
   // Open detail modals (looked up from the lists, so status changes show up in them too)
   const [selectedTicketId, setSelectedTicketId] = useState(null);
@@ -226,6 +256,11 @@ function AdminDashboard() {
 
     fetchDashboardStats();
 
+    requestAppointments(token).then(({ data, error }) => {
+      if (data) setAppointments(data);
+      else setAppointmentsError(error);
+    });
+
     requestTickets(token).then(({ data, error }) => {
       if (data) setTickets(data);
       else setTicketsError(error);
@@ -238,6 +273,15 @@ function AdminDashboard() {
   }, [token]);
 
   // Retry a failed list load
+  const reloadAppointments = () => {
+    setAppointments(null);
+    setAppointmentsError('');
+    requestAppointments(token).then(({ data, error }) => {
+      if (data) setAppointments(data);
+      else setAppointmentsError(error);
+    });
+  };
+
   const reloadTickets = () => {
     setTickets(null);
     setTicketsError('');
@@ -257,6 +301,7 @@ function AdminDashboard() {
   };
 
   // Changing the search or filter goes back to the first page
+  const updateAppointmentView = (changes) => setAppointmentView((prev) => ({ ...prev, page: 1, ...changes }));
   const updateTicketView = (changes) => setTicketView((prev) => ({ ...prev, page: 1, ...changes }));
   const updateOrderView = (changes) => setOrderView((prev) => ({ ...prev, page: 1, ...changes }));
 
@@ -334,12 +379,79 @@ function AdminDashboard() {
     }
   };
 
+  // Mark an appointment completed, which frees its slot for the next week
+  const handleCompleteAppointment = async (appointmentId) => {
+    const retry = () => handleCompleteAppointment(appointmentId);
+    setCompletingId(appointmentId);
+
+    try {
+      const { status, data: resData } = await apiRequest(`/api/appointments/${appointmentId}/complete`, {
+        method: 'PATCH',
+        token,
+      });
+
+      // Session ended: the route guard sends the admin to the login page
+      if (status === 401) return;
+
+      if (resData.success) {
+        // The response has no populated patient or doctor, so only copy the status
+        setAppointments((prev) => prev.map((a) => (a._id === appointmentId ? { ...a, status: resData.data.status } : a)));
+      } else {
+        notifyStatusError(
+          resData.message || 'Failed to complete appointment.',
+          status >= 500 ? retry : null
+        );
+
+        // The appointment changed elsewhere (cancelled by the patient, completed by another admin): load its current status quietly
+        if (status === 400 || status === 409) {
+          requestAppointments(token).then(({ data }) => {
+            if (data) setAppointments(data);
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[Admin Dashboard] Complete appointment error:', err.message);
+      notifyStatusError('Failed to connect to the server. Appointment was not completed.', retry);
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
+  // Complete button for an open appointment (disabled until its date arrives), or a dash
+  const renderCompleteAction = (appt) => {
+    if (!isOpenAppointment(appt)) return <span className="text-text-mute">—</span>;
+
+    const isDue = isAppointmentDue(appt);
+    return (
+      <button
+        type="button"
+        onClick={() => setCompleteTargetId(appt._id)}
+        disabled={!isDue || completingId === appt._id}
+        title={isDue ? undefined : `Can be completed from ${formatSlotDate(appt.date)}`}
+        aria-label={`Mark appointment of ${appt.patient?.name || 'patient'} as completed`}
+        className="inline-flex items-center gap-1 text-[10px] font-bold py-1 px-2.5 rounded-lg border border-success/30 bg-success/5 text-success hover:bg-success/10 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <CheckCircle className="w-3.5 h-3.5" />
+        {completingId === appt._id ? 'Completing...' : 'Complete'}
+      </button>
+    );
+  };
+
+  const confirmCompleteAppointment = () => {
+    const appointmentId = completeTargetId;
+    setCompleteTargetId(null);
+    handleCompleteAppointment(appointmentId);
+  };
+
   const handleOpenTicket = (ticket) => setSelectedTicketId(ticket._id);
   const handleCloseTicket = () => setSelectedTicketId(null);
   const handleOpenOrder = (order) => setSelectedOrderId(order._id);
   const handleCloseOrder = () => setSelectedOrderId(null);
 
   // Current page of each full list
+  const appointmentList = appointments
+    ? filterAndPage(appointments, appointmentView, (a) => [a.patient?.name, a.patient?.email, a.doctor?.name, a.doctor?.specialization])
+    : null;
   const ticketList = tickets
     ? filterAndPage(tickets, ticketView, (t) => [t.name, t.email, t.subject])
     : null;
@@ -536,50 +648,131 @@ function AdminDashboard() {
             {activeTab === 'appointments' && (
               <div className="flex flex-col gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-text-main font-headings">Recent Doctor Bookings</h3>
-                  <p className="text-xs text-text-sub font-body mt-0.5">Real-time appointments logging details</p>
+                  <h3 className="text-base font-bold text-text-main font-headings">All Doctor Bookings</h3>
+                  <p className="text-xs text-text-sub font-body mt-0.5">Track consultations and mark visits completed to free their slots</p>
                 </div>
 
-                {stats.recentAppointments.length === 0 ? (
+                {!appointmentList ? (
+                  <ListStatus error={appointmentsError} onRetry={reloadAppointments} />
+                ) : appointments.length === 0 ? (
                   <div className="text-center py-10 bg-bg-secondary/40 border border-border-color rounded-2xl">
                     <Calendar className="w-8 h-8 text-text-mute mx-auto mb-2" />
                     <p className="text-xs text-text-sub font-body">No doctor bookings registered in database</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto w-full">
-                    <table className="w-full text-left text-xs font-body border-collapse min-w-150">
-                      <thead>
-                        <tr className="border-b border-border-color/60 text-text-mute font-semibold">
-                          <th className="py-2.5">Patient</th>
-                          <th className="py-2.5">Doctor Specialist</th>
-                          <th className="py-2.5">Scheduled Date</th>
-                          <th className="py-2.5">Time Slot</th>
-                          <th className="py-2.5 text-right">Fee Paid</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.recentAppointments.map((appt) => (
-                          <tr key={appt._id} className="border-b border-border-color/30 hover:bg-bg-secondary/20 transition-colors">
-                            <td className="py-3 font-semibold text-text-main">
-                              {appt.patient?.name || 'Anonymous User'}
-                            </td>
-                            <td className="py-3 text-text-sub">
-                              {formatDoctorName(appt.doctor?.name)} ({appt.doctor?.specialization})
-                            </td>
-                            <td className="py-3 text-text-sub">
-                              {new Date(appt.date).toLocaleDateString()}
-                            </td>
-                            <td className="py-3 text-text-sub">
-                              {appt.timeSlot}
-                            </td>
-                            <td className="py-3 text-right font-extrabold text-primary">
-                              Rs {appt.consultingFeePaid}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <>
+                    <ListToolbar
+                      query={appointmentView.query}
+                      onQueryChange={(query) => updateAppointmentView({ query })}
+                      searchLabel="Search doctor bookings"
+                      placeholder="Search by patient, email or doctor..."
+                      status={appointmentView.status}
+                      onStatusChange={(status) => updateAppointmentView({ status })}
+                      statuses={APPOINTMENT_STATUSES}
+                      items={appointments}
+                    />
+
+                    {appointmentList.total === 0 ? (
+                      <div className="text-center py-10 bg-bg-secondary/40 border border-border-color rounded-2xl">
+                        <Search className="w-8 h-8 text-text-mute mx-auto mb-2" />
+                        <p className="text-xs text-text-sub font-body">No bookings match your search or filter</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Phones: one card per booking, so the Complete action is visible without side-scrolling */}
+                        <ul className="sm:hidden flex flex-col gap-3">
+                          {appointmentList.rows.map((appt) => (
+                            <li key={appt._id} className="border border-border-color rounded-2xl p-4 flex flex-col gap-3 text-xs font-body">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-text-main truncate">{appt.patient?.name || 'Anonymous User'}</p>
+                                  {appt.patient?.email && (
+                                    <p className="text-[10px] text-text-mute truncate">{appt.patient.email}</p>
+                                  )}
+                                </div>
+                                <AppointmentStatusBadge status={appt.status} />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-[10px] text-text-mute uppercase tracking-wider font-semibold">Doctor</p>
+                                  <p className="font-semibold text-text-main truncate">{formatDoctorName(appt.doctor?.name)}</p>
+                                  {appt.doctor?.specialization && (
+                                    <p className="text-[10px] text-text-mute truncate">{appt.doctor.specialization}</p>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[10px] text-text-mute uppercase tracking-wider font-semibold">Scheduled</p>
+                                  <p className="font-semibold text-text-main">{formatAppointmentDate(appt)}</p>
+                                  <p className="text-[10px] text-text-mute">{appt.time}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-3 pt-3 border-t border-border-color/40">
+                                <span className="font-extrabold text-primary">Rs {appt.consultationFee}</span>
+                                {renderCompleteAction(appt)}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {/* Tablets and up: table */}
+                        <div className="hidden sm:block overflow-x-auto w-full">
+                          <table className="w-full text-left text-xs font-body border-collapse min-w-150">
+                            <thead>
+                              <tr className="border-b border-border-color/60 text-text-mute font-semibold">
+                                <th className="py-2.5 pr-3">Patient</th>
+                                <th className="py-2.5 pr-3">Doctor Specialist</th>
+                                <th className="py-2.5 pr-3">Scheduled</th>
+                                <th className="py-2.5 pr-3 text-right">Fee</th>
+                                <th className="py-2.5 px-3 text-center">Status</th>
+                                <th className="py-2.5 text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {appointmentList.rows.map((appt) => (
+                                <tr key={appt._id} className="border-b border-border-color/30 hover:bg-bg-secondary/20 transition-colors">
+                                  <td className="py-3 pr-3 max-w-40">
+                                    <p className="font-semibold text-text-main truncate">{appt.patient?.name || 'Anonymous User'}</p>
+                                    {appt.patient?.email && (
+                                      <p className="text-[10px] text-text-mute truncate">{appt.patient.email}</p>
+                                    )}
+                                  </td>
+                                  <td className="py-3 pr-3 max-w-45">
+                                    <p className="font-semibold text-text-main truncate">{formatDoctorName(appt.doctor?.name)}</p>
+                                    {appt.doctor?.specialization && (
+                                      <p className="text-[10px] text-text-mute truncate">{appt.doctor.specialization}</p>
+                                    )}
+                                  </td>
+                                  <td className="py-3 pr-3 whitespace-nowrap">
+                                    <p className="text-text-main">{formatAppointmentDate(appt)}</p>
+                                    <p className="text-[10px] text-text-mute">{appt.time}</p>
+                                  </td>
+                                  <td className="py-3 pr-3 text-right font-extrabold text-primary whitespace-nowrap">
+                                    Rs {appt.consultationFee}
+                                  </td>
+                                  <td className="py-3 px-3 text-center">
+                                    <AppointmentStatusBadge status={appt.status} />
+                                  </td>
+                                  <td className="py-3 text-right">
+                                    {renderCompleteAction(appt)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+
+                    <ListPagination
+                      start={appointmentList.start}
+                      rowCount={appointmentList.rows.length}
+                      total={appointmentList.total}
+                      currentPage={appointmentList.currentPage}
+                      pageCount={appointmentList.pageCount}
+                      onPageChange={(page) => setAppointmentView((prev) => ({ ...prev, page }))}
+                      noun={appointmentList.total === 1 ? 'booking' : 'bookings'}
+                    />
+                  </>
                 )}
               </div>
             )}
@@ -786,6 +979,45 @@ function AdminDashboard() {
         )}
 
       </div>
+
+      {/* COMPLETE APPOINTMENT CONFIRMATION MODAL */}
+      {completeTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="m-auto w-full max-w-lg bg-bg-base border border-border-color rounded-3xl p-6 text-center flex flex-col items-center gap-5 shadow-2xl animate-scale-in">
+            <div className="w-12 h-12 bg-success/10 text-success rounded-full flex items-center justify-center">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-text-main font-headings">Mark Appointment Completed?</h3>
+              <p className="text-xs text-text-sub font-body leading-relaxed mt-2">
+                The consultation of <strong className="text-text-main">{completeTarget.patient?.name || 'this patient'}</strong> with{' '}
+                <strong className="text-text-main">{formatDoctorName(completeTarget.doctor?.name)}</strong> on{' '}
+                <strong className="text-text-main">{formatAppointmentDate(completeTarget)}</strong> at{' '}
+                <strong className="text-text-main">{completeTarget.time}</strong> will be marked completed, and the
+                doctor's slot opens again for the following week. This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="w-full flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => setCompleteTargetId(null)}
+                className="btn btn-secondary flex-1 py-3! px-4! rounded-2xl text-sm! font-semibold whitespace-nowrap"
+              >
+                Not Yet
+              </button>
+              <button
+                type="button"
+                onClick={confirmCompleteAppointment}
+                className="btn btn-primary flex-1 py-3! px-4! rounded-2xl text-sm! font-semibold whitespace-nowrap border-0"
+              >
+                Yes, Mark Completed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SUPPORT TICKET VIEW MODAL OVERLAY */}
       {selectedTicket && (

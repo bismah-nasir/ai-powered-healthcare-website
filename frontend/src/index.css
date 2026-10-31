@@ -6,6 +6,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* dark: utilities follow the theme toggle (.dark-theme / .light-theme), falling back to the system preference */
+@custom-variant dark {
+  &:where(.dark-theme, .dark-theme *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light-theme), :root:not(.light-theme) *) {
+      @slot;
+    }
+  }
+}
+
 /* --------------------------------------------------------------------------
    Design Tokens (CSS Variables) - Managed inside standard CSS root
    -------------------------------------------------------------------------- */
@@ -294,6 +306,14 @@ header {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+/* Horizontal chip rows that scroll by swipe without showing a scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Global Form Fields & Inputs Styling */

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Calendar, Star, Award, ArrowRight, HeartPulse, X, Wallet } from 'lucide-react';
-import { apiRequest } from '../services/api';
+import { apiRequest, isAbortError } from '../services/api';
+import CategoryFilter from '../components/common/CategoryFilter';
+import ImageWithFallback from '../components/common/ImageWithFallback';
 
 // Department Category List matching Mongoose schema enums
 const DEPARTMENTS = [
@@ -27,6 +29,9 @@ function Doctors() {
 
   // Fetch doctors dynamically from backend APIs
   useEffect(() => {
+    // Each new search cancels the previous request, so a slow older response can't overwrite newer results
+    const controller = new AbortController();
+
     const fetchDoctors = async () => {
       setLoading(true);
       setError('');
@@ -36,7 +41,8 @@ function Doctors() {
         if (selectedDept !== 'All') params.append('department', selectedDept);
         if (searchQuery) params.append('search', searchQuery);
 
-        const { data: resData } = await apiRequest(`/api/doctors?${params.toString()}`);
+        const { data: resData } = await apiRequest(`/api/doctors?${params.toString()}`, { signal: controller.signal });
+        if (controller.signal.aborted) return;
 
         if (resData.success) {
           setDoctors(resData.data);
@@ -44,10 +50,11 @@ function Doctors() {
           setError(resData.message || 'Failed to fetch doctors list.');
         }
       } catch (err) {
+        if (isAbortError(err)) return;
         console.error('[Doctors Page] Fetch error:', err.message);
         setError('Failed to connect to the server. Please ensure backend is running.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
@@ -56,7 +63,10 @@ function Doctors() {
       fetchDoctors();
     }, 300);
 
-    return () => clearTimeout(delayDebounce);
+    return () => {
+      clearTimeout(delayDebounce);
+      controller.abort();
+    };
   }, [searchQuery, selectedDept]);
 
   // Reset all filters helper
@@ -92,54 +102,20 @@ function Doctors() {
             </span>
             <input
               type="text"
+              aria-label="Search doctors"
               placeholder="Search by doctor name or specialization..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-icon-left py-4 focus:border-primary border-0 w-full rounded-2xl bg-transparent"
             />
           </div>
-
-          {/* Department Selection Selector Dropdown (Mobile visible, tablet hidden) */}
-          <div className="w-full md:w-auto md:hidden">
-            <select
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-              className="focus:border-primary"
-            >
-              {DEPARTMENTS.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
         {/* Main Browse Layout (Sidebar Departments + Card Grid) */}
-        <div className="w-full flex flex-col lg:flex-row gap-8 items-start">
+        <div className="w-full flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           
-          {/* Desktop Left Sidebar: Departments Filters list */}
-          <div className="hidden md:flex lg:flex flex-col gap-2 w-full md:w-64 shrink-0 glass-panel rounded-3xl p-6">
-            <h3 className="text-sm font-bold text-text-main tracking-wider uppercase font-headings mb-3 border-b border-border-color pb-2">
-              Departments
-            </h3>
-            <div className="flex flex-col gap-1.5">
-              {DEPARTMENTS.map((dept) => (
-                <button
-                  key={dept}
-                  type="button"
-                  onClick={() => setSelectedDept(dept)}
-                  className={`text-left px-4 py-2.5 rounded-xl text-xs font-semibold font-body transition-all duration-300 border-0 ${
-                    selectedDept === dept
-                      ? 'bg-primary text-white shadow-md shadow-primary/20'
-                      : 'text-text-sub hover:text-primary hover:bg-primary/5 bg-transparent'
-                  }`}
-                >
-                  {dept}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Category picker: chip row on phone & tablet, sidebar on desktop */}
+          <CategoryFilter title="Departments" options={DEPARTMENTS} value={selectedDept} onChange={setSelectedDept} />
 
           {/* Right Side: Doctor Card Grid or States */}
           <div className="grow w-full">
@@ -213,18 +189,16 @@ function Doctors() {
                       <div className="flex items-start gap-4">
                         {/* Profile Image with initials fallback */}
                         <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center">
-                          {doctor.imageUrl ? (
-                            <img 
-                              src={doctor.imageUrl} 
-                              alt={doctor.name} 
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                              onError={(e) => { e.target.style.display = 'none'; }}
-                            />
-                          ) : (
-                            <span className="text-xl font-extrabold text-primary font-headings">
-                              {doctor.name.split(' ').slice(1).map(n => n.charAt(0)).join('') || 'DR'}
-                            </span>
-                          )}
+                          <ImageWithFallback
+                            src={doctor.imageUrl}
+                            alt={doctor.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            fallback={
+                              <span className="text-xl font-extrabold text-primary font-headings">
+                                {doctor.name.split(' ').slice(1).map(n => n.charAt(0)).join('') || 'DR'}
+                              </span>
+                            }
+                          />
                         </div>
 
                         {/* Title details */}

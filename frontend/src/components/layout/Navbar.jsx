@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { rememberPage } from '../../utils/authRedirect';
 import { HeartPulse, ShoppingCart, Sun, Moon, Menu, X, LogOut, User, Calendar } from 'lucide-react';
+
+// Remembered theme choice (also read by the inline script in index.html before the first paint)
+const THEME_STORAGE_KEY = 'theme';
+
+const saveThemeChoice = (isDark) => {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
+  } catch {
+    // Storage blocked: the choice still applies until the page is reloaded
+  }
+};
 
 const getInitials = (name) => {
   if (!name) return '';
@@ -23,6 +34,7 @@ function Navbar() {
   // Navigation states
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const profileMenuRef = useRef(null);
 
   // Initial Dark Mode state from a manually chosen theme class, else the system preference
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -38,7 +50,35 @@ function Navbar() {
     setIsDarkMode(nextMode);
     document.documentElement.classList.toggle('dark-theme', nextMode);
     document.documentElement.classList.toggle('light-theme', !nextMode);
+    saveThemeChoice(nextMode);
   };
+
+  // Close the profile dropdown on a click/tap outside it, and close any open menu with Escape
+  useEffect(() => {
+    if (!profileOpen && !isOpen) return;
+
+    const handlePointerDown = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setProfileOpen(false);
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [profileOpen, isOpen]);
+
+  const themeLabel = isDarkMode ? 'Switch to light theme' : 'Switch to dark theme';
+  const cartLabel = cartCount > 0 ? `Shopping cart, ${cartCount} item${cartCount === 1 ? '' : 's'}` : 'Shopping cart';
 
   // Close mobile drawer on route click
   const handleNavClick = () => {
@@ -74,8 +114,8 @@ function Navbar() {
     <header className="sticky top-0 w-full bg-bg-base/80 backdrop-blur-md border-b border-border-color z-50 transition-colors duration-300">
       <div className="max-w-300 mx-auto px-6 h-17.5 flex items-center justify-between gap-6">
         
-        {/* Brand Logo */}
-        <Link to="/" onClick={handleNavClick} className="flex items-center gap-2 shrink-0">
+        {/* Brand Logo (signed-in users go to the dashboard home instead of the splash intro) */}
+        <Link to={user ? '/home' : '/'} onClick={handleNavClick} aria-label="PulseCare AI home" className="flex items-center gap-2 shrink-0">
           <div className="w-9 h-9 bg-primary flex items-center justify-center rounded-xl shadow-md shadow-primary/10">
             <HeartPulse className="w-5 h-5 text-white" />
           </div>
@@ -103,7 +143,8 @@ function Navbar() {
             type="button" 
             onClick={toggleTheme}
             className="text-text-sub hover:text-primary p-2 rounded-xl transition-all duration-300 hover:rotate-12 active:scale-95 bg-transparent border-0 cursor-pointer"
-            aria-label="Toggle Theme"
+            aria-label={themeLabel}
+            title={themeLabel}
           >
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
@@ -112,7 +153,7 @@ function Navbar() {
           <Link 
             to="/cart" 
             className="relative text-text-sub hover:text-primary p-2 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
-            aria-label="Shopping Cart"
+            aria-label={cartLabel}
           >
             <ShoppingCart className="w-5 h-5" />
             {cartCount > 0 && (
@@ -124,10 +165,13 @@ function Navbar() {
 
           {/* Conditional User Profile rendering */}
           {user ? (
-            <div className="relative">
+            <div className="relative" ref={profileMenuRef}>
               <button
                 type="button"
                 onClick={() => setProfileOpen(!profileOpen)}
+                aria-label={`Account menu for ${user.name}`}
+                aria-controls="profile-menu"
+                aria-expanded={profileOpen}
                 className="w-10 h-10 bg-primary/10 hover:bg-primary/20 text-primary font-bold rounded-full flex items-center justify-center border-0 transition-all duration-300 active:scale-95 hover:scale-105 cursor-pointer"
               >
                 {getInitials(user.name)}
@@ -135,7 +179,7 @@ function Navbar() {
               
               {/* Profile Dropdown Panel */}
               {profileOpen && (
-                <div className="absolute right-0 mt-3 w-48 bg-bg-base border border-border-color rounded-2xl p-3 shadow-lg z-50 animate-fade-in">
+                <div id="profile-menu" className="absolute right-0 mt-3 w-48 bg-bg-base border border-border-color rounded-2xl p-3 shadow-lg z-50 animate-fade-in">
                   <div className="px-3 py-2 border-b border-border-color mb-2">
                     <p className="text-xs font-bold text-text-main truncate">{user.name}</p>
                     <p className="text-[10px] text-text-mute truncate mt-0.5">{user.email}</p>
@@ -183,6 +227,7 @@ function Navbar() {
             type="button" 
             onClick={toggleTheme}
             className="text-text-sub hover:text-primary p-2 rounded-xl transition-colors bg-transparent border-0"
+            aria-label={themeLabel}
           >
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
@@ -191,6 +236,7 @@ function Navbar() {
           <Link 
             to="/cart" 
             className="relative text-text-sub hover:text-primary p-2 rounded-xl transition-colors"
+            aria-label={cartLabel}
           >
             <ShoppingCart className="w-5 h-5" />
             {cartCount > 0 && (
@@ -205,7 +251,9 @@ function Navbar() {
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className="text-text-sub hover:text-primary p-2 rounded-xl transition-colors bg-transparent border-0"
-            aria-label="Toggle Menu"
+            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isOpen}
+            aria-controls="mobile-nav-drawer"
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -214,7 +262,7 @@ function Navbar() {
 
       {/* Mobile Drawer menu Panel (Collapses down) */}
       {isOpen && (
-        <div className="xl:hidden border-t border-border-color bg-bg-base/95 backdrop-blur-md py-4 px-6 flex flex-col gap-4 animate-fade-in shadow-lg">
+        <div id="mobile-nav-drawer" className="xl:hidden border-t border-border-color bg-bg-base/95 backdrop-blur-md py-4 px-6 flex flex-col gap-4 animate-fade-in shadow-lg">
           <nav className="flex flex-col gap-4">
             {renderNavLink('/home', 'Home')}
             {renderNavLink('/doctors', 'Doctors')}

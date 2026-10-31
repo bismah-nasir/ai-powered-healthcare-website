@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { apiRequest } from '../services/api';
+import ImageWithFallback from '../components/common/ImageWithFallback';
 import { Calendar, Clock, FileText, AlertCircle, XCircle, CheckCircle } from 'lucide-react';
 
 // Fetch appointments list, resolving to { data } on success or { error } on failure
@@ -255,23 +256,21 @@ function MyAppointments() {
                   <div className="flex items-start gap-4 w-full sm:w-auto">
                     {/* Doctor Avatar */}
                     <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center">
-                      {docInfo.imageUrl ? (
-                        <img 
-                          src={docInfo.imageUrl} 
-                          alt={docInfo.name} 
-                          className="w-full h-full object-cover"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                      ) : (
-                        <span className="text-lg font-bold text-primary font-headings">
-                          {docInfo.name ? docInfo.name.split(' ').slice(1).map(n => n.charAt(0)).join('') : 'DR'}
-                        </span>
-                      )}
+                      <ImageWithFallback
+                        src={docInfo.imageUrl}
+                        alt={docInfo.name}
+                        className="w-full h-full object-cover"
+                        fallback={
+                          <span className="text-lg font-bold text-primary font-headings">
+                            {docInfo.name ? docInfo.name.split(' ').slice(1).map(n => n.charAt(0)).join('') : 'DR'}
+                          </span>
+                        }
+                      />
                     </div>
 
                     <div className="grow min-w-0">
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-base text-text-main font-headings truncate">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        <h3 className="font-bold text-base text-text-main font-headings truncate max-w-full">
                           {docInfo.name || 'Unknown Doctor'}
                         </h3>
                         {getStatusBadge(app.status)}
@@ -332,8 +331,8 @@ function MyAppointments() {
 
       {/* CANCELLATION DIALOG MODAL */}
       {cancelModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-lg bg-bg-base border border-border-color rounded-3xl p-6 text-center flex flex-col items-center gap-5 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="m-auto w-full max-w-lg bg-bg-base border border-border-color rounded-3xl p-6 text-center flex flex-col items-center gap-5 shadow-2xl">
             <div className="w-12 h-12 bg-danger/10 text-danger rounded-full flex items-center justify-center">
               <AlertCircle className="w-6 h-6" />
             </div>

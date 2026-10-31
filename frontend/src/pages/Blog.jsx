@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Clock, User, ArrowRight, X, AlertCircle, HeartPulse, Tag } from 'lucide-react';
-import { apiRequest } from '../services/api';
+import { apiRequest, isAbortError } from '../services/api';
+import ImageWithFallback from '../components/common/ImageWithFallback';
 
 const CATEGORIES = [
   'All',
@@ -27,6 +28,9 @@ function Blog() {
 
   // Fetch articles dynamically from the backend
   useEffect(() => {
+    // Each new search cancels the previous request, so a slow older response can't overwrite newer results
+    const controller = new AbortController();
+
     const fetchArticles = async () => {
       setLoading(true);
       setError('');
@@ -36,7 +40,8 @@ function Blog() {
         if (selectedTag) params.append('tag', selectedTag);
         if (searchQuery) params.append('search', searchQuery);
 
-        const { data: resData } = await apiRequest(`/api/blogs?${params.toString()}`);
+        const { data: resData } = await apiRequest(`/api/blogs?${params.toString()}`, { signal: controller.signal });
+        if (controller.signal.aborted) return;
 
         if (resData.success) {
           setArticles(resData.data);
@@ -44,10 +49,11 @@ function Blog() {
           setError(resData.message || 'Failed to fetch health articles feed.');
         }
       } catch (err) {
+        if (isAbortError(err)) return;
         console.error('[Blog Page] Fetch error:', err.message);
         setError('Failed to connect to the server. Please ensure the backend is running.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
@@ -55,7 +61,10 @@ function Blog() {
       fetchArticles();
     }, 300);
 
-    return () => clearTimeout(delayDebounce);
+    return () => {
+      clearTimeout(delayDebounce);
+      controller.abort();
+    };
   }, [searchQuery, selectedCategory, selectedTag]);
 
   // Click card trigger to open modal reader
@@ -111,6 +120,7 @@ function Blog() {
               <button 
                 type="button" 
                 onClick={() => setSelectedTag('')}
+                aria-label={`Clear tag filter ${selectedTag}`}
                 className="text-primary hover:text-text-main ml-1 bg-transparent border-0 cursor-pointer p-0"
               >
                 <X className="w-4 h-4" />
@@ -129,6 +139,7 @@ function Blog() {
             </span>
             <input
               type="text"
+              aria-label="Search articles"
               placeholder="Search by keywords, tags, or article titles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -136,8 +147,8 @@ function Blog() {
             />
           </div>
 
-          {/* Categories navigation selector buttons row */}
-          <div className="flex flex-wrap items-center gap-2 pt-2">
+          {/* Categories row: swipeable on phone & tablet (like the other catalog pages), wraps on desktop */}
+          <div role="group" aria-label="Categories" className="w-[calc(100%+3rem)] -mx-6 px-6 lg:w-full lg:mx-0 lg:px-0 flex lg:flex-wrap items-center gap-2 pt-2 pb-1 overflow-x-auto lg:overflow-visible no-scrollbar">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
@@ -146,7 +157,8 @@ function Blog() {
                   setSelectedCategory(cat);
                   setSelectedTag(''); // Clear tag filter when picking main category
                 }}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold font-body transition-all duration-300 border border-border-color ${
+                aria-pressed={selectedCategory === cat}
+                className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold font-body transition-all duration-300 border border-border-color ${
                   selectedCategory === cat
                     ? 'bg-primary border-primary text-white shadow-md shadow-primary/15'
                     : 'bg-bg-base/50 text-text-sub hover:text-primary hover:bg-primary/5 hover:border-primary/30'
@@ -217,19 +229,17 @@ function Blog() {
                   >
                     {/* Cover Image Frame */}
                     <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-bg-secondary/50 flex items-center justify-center border border-border-color">
-                      {article.imageUrl ? (
-                        <img 
-                          src={article.imageUrl} 
-                          alt={article.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                      ) : (
-                        <HeartPulse className="w-12 h-12 text-primary/20" />
-                      )}
+                      <ImageWithFallback
+                        src={article.imageUrl}
+                        alt={article.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        fallback={
+                          <HeartPulse className="w-12 h-12 text-primary/20" />
+                        }
+                      />
                       
                       {/* Category Badge overlay */}
-                      <span className="absolute top-3 left-3 bg-primary/15 text-primary border border-primary/20 px-2.5 py-1 rounded-lg text-[9px] font-extrabold tracking-wider uppercase backdrop-blur-md">
+                      <span className="absolute top-3 left-3 bg-bg-base/90 text-primary border border-primary/30 px-2.5 py-1 rounded-lg text-[9px] font-extrabold tracking-wider uppercase backdrop-blur-md shadow-sm">
                         {article.category}
                       </span>
                     </div>
@@ -289,8 +299,8 @@ function Blog() {
 
       {/* READING MODAL READER OVERLAY */}
       {readerModalOpen && selectedArticle && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-2xl bg-bg-base border border-border-color rounded-3xl shadow-2xl relative max-h-[85vh] overflow-hidden flex flex-col animate-scale-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="m-auto w-full max-w-2xl bg-bg-base border border-border-color rounded-3xl shadow-2xl relative max-h-[85vh] overflow-hidden flex flex-col animate-scale-in">
             
             {/* Scrollable Content Container */}
             <div className="w-full h-full overflow-y-auto p-8 pr-6 custom-scrollbar flex flex-col gap-6 relative">
@@ -299,6 +309,7 @@ function Blog() {
               <button
                 type="button"
                 onClick={handleCloseReader}
+                aria-label="Close article"
                 className="absolute top-5 right-5 text-text-sub hover:text-text-main bg-bg-secondary/85 border border-border-color p-2 rounded-full transition-colors z-20 shadow-sm"
               >
                 <X className="w-5 h-5" />
@@ -319,16 +330,14 @@ function Blog() {
                   <div className="flex items-center gap-3">
                     {/* Author avatar */}
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center shrink-0">
-                      {selectedArticle.author.imageUrl ? (
-                        <img 
-                          src={selectedArticle.author.imageUrl} 
-                          alt={selectedArticle.author.name} 
-                          className="w-full h-full object-cover"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                      ) : (
-                        <User className="w-5 h-5 text-primary" />
-                      )}
+                      <ImageWithFallback
+                        src={selectedArticle.author.imageUrl}
+                        alt={selectedArticle.author.name}
+                        className="w-full h-full object-cover"
+                        fallback={
+                          <User className="w-5 h-5 text-primary" />
+                        }
+                      />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-text-main font-body">{selectedArticle.author.name}</p>
@@ -346,12 +355,12 @@ function Blog() {
 
               {/* Big cover photo details */}
               {selectedArticle.imageUrl && (
-                <div className="w-full h-64 rounded-2xl overflow-hidden border border-border-color shrink-0">
-                  <img 
-                    src={selectedArticle.imageUrl} 
-                    alt={selectedArticle.title} 
+                <div className="w-full h-64 rounded-2xl overflow-hidden border border-border-color shrink-0 bg-bg-secondary/50 flex items-center justify-center">
+                  <ImageWithFallback
+                    src={selectedArticle.imageUrl}
+                    alt={selectedArticle.title}
                     className="w-full h-full object-cover"
-                    onError={(e) => { e.target.style.display = 'none'; }}
+                    fallback={<HeartPulse className="w-12 h-12 text-primary/20" />}
                   />
                 </div>
               )}

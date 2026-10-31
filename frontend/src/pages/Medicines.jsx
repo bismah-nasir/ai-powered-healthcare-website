@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Search, ShoppingCart, AlertTriangle, Check, ShieldAlert, HeartPulse } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { apiRequest } from '../services/api';
+import { apiRequest, isAbortError } from '../services/api';
+import CategoryFilter from '../components/common/CategoryFilter';
+import ImageWithFallback from '../components/common/ImageWithFallback';
 
 const CATEGORIES = [
   'All',
@@ -29,6 +31,9 @@ function Medicines() {
 
   // Fetch medicines dynamically from the backend
   useEffect(() => {
+    // Each new search cancels the previous request, so a slow older response can't overwrite newer results
+    const controller = new AbortController();
+
     const fetchMedicines = async () => {
       setLoading(true);
       setError('');
@@ -37,7 +42,8 @@ function Medicines() {
         if (selectedCategory !== 'All') params.append('category', selectedCategory);
         if (searchQuery) params.append('search', searchQuery);
 
-        const { data: resData } = await apiRequest(`/api/medicines?${params.toString()}`);
+        const { data: resData } = await apiRequest(`/api/medicines?${params.toString()}`, { signal: controller.signal });
+        if (controller.signal.aborted) return;
 
         if (resData.success) {
           setMedicines(resData.data);
@@ -45,10 +51,11 @@ function Medicines() {
           setError(resData.message || 'Failed to fetch medicines directory.');
         }
       } catch (err) {
+        if (isAbortError(err)) return;
         console.error('[Medicines Page] Fetch error:', err.message);
         setError('Failed to connect to the server. Please ensure the backend is running.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
@@ -56,7 +63,10 @@ function Medicines() {
       fetchMedicines();
     }, 300);
 
-    return () => clearTimeout(delayDebounce);
+    return () => {
+      clearTimeout(delayDebounce);
+      controller.abort();
+    };
   }, [searchQuery, selectedCategory]);
 
   const { addToCart } = useCart();
@@ -109,6 +119,7 @@ function Medicines() {
             </span>
             <input
               type="text"
+              aria-label="Search medicines"
               placeholder="Search by drug name or active chemical ingredients..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -116,48 +127,13 @@ function Medicines() {
             />
           </div>
 
-          {/* Mobile responsive selector dropdown (hidden on desktop) */}
-          <div className="w-full md:w-auto md:hidden">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="focus:border-primary"
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
         </div>
 
         {/* Main Catalog View Grid */}
-        <div className="w-full flex flex-col lg:flex-row gap-8 items-start">
+        <div className="w-full flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           
-          {/* Desktop Left Sidebar: Categories selection list */}
-          <div className="hidden md:flex lg:flex flex-col gap-2 w-full md:w-64 shrink-0 glass-panel rounded-3xl p-6">
-            <h3 className="text-sm font-bold text-text-main tracking-wider uppercase font-headings mb-3 border-b border-border-color pb-2">
-              Categories
-            </h3>
-            <div className="flex flex-col gap-1.5">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`text-left px-4 py-2.5 rounded-xl text-xs font-semibold font-body transition-all duration-300 border-0 ${
-                    selectedCategory === cat
-                      ? 'bg-primary text-white shadow-md shadow-primary/20'
-                      : 'text-text-sub hover:text-primary hover:bg-primary/5 bg-transparent'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Category picker: chip row on phone & tablet, sidebar on desktop */}
+          <CategoryFilter title="Categories" options={CATEGORIES} value={selectedCategory} onChange={setSelectedCategory} />
 
           {/* Right Segment: Medicine Products Grid */}
           <div className="grow w-full">
@@ -222,21 +198,19 @@ function Medicines() {
                     >
                       {/* Product Image Frame */}
                       <div className="relative w-full h-40 rounded-2xl overflow-hidden bg-bg-secondary/50 flex items-center justify-center border border-border-color">
-                        {med.imageUrl ? (
-                          <img 
-                            src={med.imageUrl} 
-                            alt={med.name} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                          />
-                        ) : (
-                          <HeartPulse className="w-12 h-12 text-primary/20" />
-                        )}
+                        <ImageWithFallback
+                          src={med.imageUrl}
+                          alt={med.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          fallback={
+                            <HeartPulse className="w-12 h-12 text-primary/20" />
+                          }
+                        />
 
                         {/* Prescription Required Badge (Rx) */}
                         {med.isPrescriptionRequired && (
-                          <span className="absolute top-3 left-3 bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20 px-2.5 py-1 rounded-lg text-[9px] font-extrabold tracking-wider uppercase flex items-center gap-1 backdrop-blur-md">
-                            <ShieldAlert className="w-3. h-3" /> Rx Required
+                          <span className="absolute top-3 left-3 bg-bg-base/90 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30 px-2.5 py-1 rounded-lg text-[9px] font-extrabold tracking-wider uppercase flex items-center gap-1 backdrop-blur-md shadow-sm">
+                            <ShieldAlert className="w-3 h-3" /> Rx Required
                           </span>
                         )}
                         

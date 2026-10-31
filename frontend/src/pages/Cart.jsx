@@ -5,6 +5,7 @@ import { useNotify } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../services/api';
 import { rememberPage } from '../utils/authRedirect';
+import ImageWithFallback from '../components/common/ImageWithFallback';
 import { 
   Trash2, Plus, Minus, ShoppingBag, MapPin, Phone, 
   CreditCard, ShieldAlert, CheckCircle, ArrowLeft, Info 
@@ -234,17 +235,18 @@ function Cart() {
                     
                     {/* Item Thumbnail */}
                     <div className="w-16 h-16 rounded-xl overflow-hidden border border-border-color shrink-0 bg-bg-secondary/40 flex items-center justify-center text-text-mute">
-                      {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <ShoppingBag className="w-6 h-6 text-primary/20" />
-                      )}
+                      <ImageWithFallback
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        fallback={<ShoppingBag className="w-6 h-6 text-primary/20" />}
+                      />
                     </div>
 
                     {/* Item Details */}
                     <div className="grow min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <h4 className="font-bold text-sm text-text-main truncate leading-snug">{item.name}</h4>
+                        <h4 className="font-bold text-sm text-text-main line-clamp-2 break-words leading-snug">{item.name}</h4>
                         {item.isPrescriptionRequired && (
                           <span className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 text-[7px] font-extrabold uppercase px-1 py-0.5 rounded tracking-wide font-body">Rx</span>
                         )}
@@ -283,6 +285,7 @@ function Cart() {
                         <button 
                           type="button" 
                           onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                          aria-label={`Decrease quantity of ${item.name}`}
                           className="p-1 hover:text-primary transition-colors border-0 bg-transparent"
                         >
                           <Minus className="w-3.5 h-3.5" />
@@ -291,6 +294,7 @@ function Cart() {
                         <button 
                           type="button" 
                           onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                          aria-label={`Increase quantity of ${item.name}`}
                           className="p-1 hover:text-primary transition-colors border-0 bg-transparent"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -349,7 +353,7 @@ function Cart() {
               {/* Field 3: Payment Selection */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-text-sub uppercase tracking-wider font-body">Payment Method *</label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   
                   {/* COD */}
                   <label className={`border rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all ${
@@ -456,8 +460,8 @@ function Cart() {
 
       {/* ORDER SUCCESS RECEIPT DIALOG MODAL */}
       {checkoutSuccess && orderReceipt && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="m-auto w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
             <div className="w-14 h-14 bg-success/10 flex items-center justify-center rounded-full">
               <CheckCircle className="w-9 h-9 text-success" />
             </div>
@@ -506,8 +510,8 @@ function Cart() {
 
       {/* CUSTOM AUTH REQUIRED MODAL OVERLAY */}
       {authModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="m-auto w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
             <div className="w-14 h-14 bg-danger/10 flex items-center justify-center rounded-full text-danger">
               <ShieldAlert className="w-9 h-9" />
             </div>

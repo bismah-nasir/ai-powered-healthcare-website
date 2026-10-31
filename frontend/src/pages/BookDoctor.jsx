@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { apiRequest } from '../services/api';
 import { rememberPage } from '../utils/authRedirect';
+import ImageWithFallback from '../components/common/ImageWithFallback';
 import { HeartPulse, Calendar, Clock, Star, Award, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
 
 function BookDoctor() {
@@ -208,18 +209,16 @@ function BookDoctor() {
                 
                 {/* Doctor Avatar */}
                 <div className="w-24 h-24 rounded-2xl overflow-hidden bg-primary/10 flex items-center justify-center">
-                  {doctor.imageUrl ? (
-                    <img 
-                      src={doctor.imageUrl} 
-                      alt={doctor.name} 
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <span className="text-3xl font-extrabold text-primary font-headings">
-                      {doctor.name.split(' ').slice(1).map(n => n.charAt(0)).join('') || 'DR'}
-                    </span>
-                  )}
+                  <ImageWithFallback
+                    src={doctor.imageUrl}
+                    alt={doctor.name}
+                    className="w-full h-full object-cover"
+                    fallback={
+                      <span className="text-3xl font-extrabold text-primary font-headings">
+                        {doctor.name.split(' ').slice(1).map(n => n.charAt(0)).join('') || 'DR'}
+                      </span>
+                    }
+                  />
                 </div>
 
                 {/* Rating Badge */}
@@ -294,7 +293,7 @@ function BookDoctor() {
                 )}
 
                 {hasSlots ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-3">
                     {doctor.availableSlots.map((slot) => {
                       const isSelected = selectedSlot && selectedSlot._id === slot._id;
                       
@@ -304,7 +303,7 @@ function BookDoctor() {
                           type="button"
                           disabled={slot.isBooked}
                           onClick={() => handleSelectSlot(slot)}
-                          className={`flex items-center justify-between p-4 rounded-2xl border text-xs font-body transition-all duration-300 ${
+                          className={`flex items-center justify-between gap-3 p-4 rounded-2xl border text-xs font-body whitespace-nowrap transition-all duration-300 ${
                             slot.isBooked
                               ? 'opacity-40 bg-bg-secondary border-border-color cursor-not-allowed text-text-mute'
                               : isSelected

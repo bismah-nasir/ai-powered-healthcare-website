@@ -9,6 +9,12 @@ import {
   ShoppingBag, CreditCard, MapPin
 } from 'lucide-react';
 
+// Doctor names are usually stored with the "Dr." title already; only add it when missing
+const formatDoctorName = (name) => {
+  if (!name) return 'Specialist';
+  return /^dr\.?\s/i.test(name) ? name : `Dr. ${name}`;
+};
+
 function AdminDashboard() {
   const { user, token } = useAuth();
   const { showNotice } = useNotify();
@@ -267,8 +273,8 @@ function AdminDashboard() {
         
         {/* Banner Header */}
         <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row justify-between items-center gap-6">
-          <div className="flex gap-4 items-start text-center sm:text-left">
-            <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0 mx-auto sm:mx-0">
+          <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start text-center sm:text-left">
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
               <Settings className="w-6 h-6" />
             </div>
             <div>
@@ -280,7 +286,7 @@ function AdminDashboard() {
               </p>
             </div>
           </div>
-          <div className="bg-bg-base/60 border border-border-color rounded-2xl px-5 py-3 text-xs text-text-sub flex items-center gap-2">
+          <div className="bg-bg-base/60 border border-border-color rounded-2xl px-5 py-3 text-xs text-text-sub flex items-center gap-2 whitespace-nowrap shrink-0">
             <Shield className="w-4 h-4 text-primary" />
             Signed in as: <strong className="text-text-main font-semibold">{user?.name}</strong>
           </div>
@@ -326,8 +332,8 @@ function AdminDashboard() {
               <p className="text-[9px] text-text-mute font-body font-semibold uppercase tracking-wider">Support Tickets</p>
             </div>
 
-            {/* Stat 5: Pharmacy Orders */}
-            <div className="glass-panel rounded-3xl p-5 flex flex-col gap-1 relative hover:border-primary/20 transition-all duration-300">
+            {/* Stat 5: Pharmacy Orders (fills the last row on its own in the 2-column phone grid) */}
+            <div className="col-span-2 md:col-span-1 glass-panel rounded-3xl p-5 flex flex-col gap-1 relative hover:border-primary/20 transition-all duration-300">
               <div className="w-9 h-9 bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center">
                 <ShoppingBag className="w-4 h-4" />
               </div>
@@ -416,7 +422,7 @@ function AdminDashboard() {
                               {appt.patient?.name || 'Anonymous User'}
                             </td>
                             <td className="py-3 text-text-sub">
-                              Dr. {appt.doctor?.name || 'Specialist'} ({appt.doctor?.specialization})
+                              {formatDoctorName(appt.doctor?.name)} ({appt.doctor?.specialization})
                             </td>
                             <td className="py-3 text-text-sub">
                               {new Date(appt.date).toLocaleDateString()}
@@ -479,6 +485,7 @@ function AdminDashboard() {
                             <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
                               <select
                                 value={ticket.status}
+                                aria-label={`Status of ticket from ${ticket.name}`}
                                 onChange={(e) => handleStatusChange(ticket._id, e.target.value)}
                                 className="text-[10px] py-1 px-2.5 rounded-lg border border-border-color bg-bg-base text-text-main font-semibold max-w-28.75"
                               >
@@ -548,6 +555,7 @@ function AdminDashboard() {
                             <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
                               <select
                                 value={order.status}
+                                aria-label={`Status of order ${order._id}`}
                                 onChange={(e) => handleOrderStatusChange(order._id, e.target.value)}
                                 className="text-[10px] py-1 px-2.5 rounded-lg border border-border-color bg-bg-base text-text-main font-semibold max-w-28.75"
                               >
@@ -574,13 +582,14 @@ function AdminDashboard() {
 
       {/* SUPPORT TICKET VIEW MODAL OVERLAY */}
       {ticketModalOpen && selectedTicket && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-lg bg-bg-base border border-border-color rounded-3xl shadow-2xl relative max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="m-auto w-full max-w-lg bg-bg-base border border-border-color rounded-3xl shadow-2xl relative max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
             
             {/* Close trigger button */}
             <button
               type="button"
               onClick={handleCloseTicket}
+              aria-label="Close ticket details"
               className="absolute top-5 right-5 text-text-sub hover:text-text-main bg-bg-secondary/85 border border-border-color p-2 rounded-full transition-colors z-20 shadow-sm"
             >
               <X className="w-5 h-5" />
@@ -626,6 +635,7 @@ function AdminDashboard() {
                 <span className="text-[10px] text-text-sub font-bold font-body">Change ticket status:</span>
                 <select
                   value={selectedTicket.status}
+                  aria-label="Change ticket status"
                   onChange={(e) => handleStatusChange(selectedTicket._id, e.target.value)}
                   className="text-xs py-2 px-3 rounded-xl border border-border-color bg-bg-base text-text-main font-semibold w-40"
                 >
@@ -644,13 +654,14 @@ function AdminDashboard() {
 
       {/* PHARMACY ORDER RECEIPT VIEW MODAL OVERLAY */}
       {orderModalOpen && selectedOrder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-lg bg-bg-base border border-border-color rounded-3xl shadow-2xl relative max-h-[85vh] overflow-hidden flex flex-col animate-scale-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="m-auto w-full max-w-lg bg-bg-base border border-border-color rounded-3xl shadow-2xl relative max-h-[85vh] overflow-hidden flex flex-col animate-scale-in">
             
             {/* Close trigger button */}
             <button
               type="button"
               onClick={handleCloseOrder}
+              aria-label="Close order details"
               className="absolute top-5 right-5 text-text-sub hover:text-text-main bg-bg-secondary/85 border border-border-color p-2 rounded-full transition-colors z-20 shadow-sm"
             >
               <X className="w-5 h-5" />
@@ -728,6 +739,7 @@ function AdminDashboard() {
                 <span className="text-[10px] text-text-sub font-bold font-body">Change order status:</span>
                 <select
                   value={selectedOrder.status}
+                  aria-label="Change order status"
                   onChange={(e) => handleOrderStatusChange(selectedOrder._id, e.target.value)}
                   className="text-xs py-2 px-3 rounded-xl border border-border-color bg-bg-base text-text-main font-semibold w-40"
                 >

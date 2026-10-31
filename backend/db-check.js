@@ -1,12 +1,12 @@
-import dns from 'dns';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-
-// Force Node.js to use public DNS resolvers
-dns.setServers(['1.1.1.1', '8.8.8.8']);
+import applyDnsOverride from './config/dns.js';
 
 // Load environment variables
 dotenv.config();
+
+// Use custom DNS resolvers only if DNS_SERVERS is set (see backend/.env.example)
+applyDnsOverride('Test');
 
 const verifyConnection = async () => {
   const uri = process.env.MONGODB_URI;
@@ -43,7 +43,8 @@ const verifyConnection = async () => {
     console.error('Possible fixes:');
     console.error('1. Did you double check that you replaced YOUR_SECRET_PASSWORD with your actual password?');
     console.error('2. Make sure you have whitelisted your IP in Atlas Network Access tab (0.0.0.0/0).');
-    console.error('3. If this dns resolver fix did not work, try getting the legacy standard connection string (mongodb:// instead of mongodb+srv://) from Atlas.');
+    console.error('3. If the error mentions querySrv or ETIMEOUT, set DNS_SERVERS=1.1.1.1,8.8.8.8 in .env and try again.');
+    console.error('4. If that still fails, try the legacy standard connection string (mongodb:// instead of mongodb+srv://) from Atlas.');
     process.exit(1);
   }
 };

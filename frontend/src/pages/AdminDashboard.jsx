@@ -3,17 +3,179 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { apiRequest } from '../services/api';
+import OrderStatusBadge from '../components/common/OrderStatusBadge';
 import {
   Users, HeartPulse, Calendar, Mail, Clock,
   Shield, Settings, X,
-  ShoppingBag, CreditCard, MapPin
+  ShoppingBag, CreditCard, MapPin,
+  Search, AlertCircle, ChevronLeft, ChevronRight
 } from 'lucide-react';
+
+// Rows shown per page in the full ticket and order lists
+const PAGE_SIZE = 10;
+
+const TICKET_STATUSES = [
+  { value: 'unread', label: 'Unread' },
+  { value: 'read', label: 'Read' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'resolved', label: 'Resolved' },
+];
+
+const ORDER_STATUSES = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'processing', label: 'Processing' },
+  { value: 'shipped', label: 'Shipped' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
 // Doctor names are usually stored with the "Dr." title already; only add it when missing
 const formatDoctorName = (name) => {
   if (!name) return 'Specialist';
   return /^dr\.?\s/i.test(name) ? name : `Dr. ${name}`;
 };
+
+// Fetch a full admin list, resolving to { data } on success or { error } on failure
+const requestList = async (path, token, failMessage) => {
+  try {
+    const { data: resData } = await apiRequest(path, { token });
+
+    if (resData.success) {
+      return { data: resData.data };
+    }
+    return { error: resData.message || failMessage };
+  } catch (err) {
+    console.error(`[Admin Dashboard] Fetch ${path} error:`, err.message);
+    return { error: 'Failed to connect to the server. Please verify the backend.' };
+  }
+};
+
+const requestTickets = (token) => requestList('/api/contact', token, 'Failed to load support tickets.');
+const requestOrders = (token) => requestList('/api/orders', token, 'Failed to load pharmacy orders.');
+
+// Case-insensitive match of the search text against any of the given fields
+const matchesSearch = (query, fields) => {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  return fields.some((field) => field && String(field).toLowerCase().includes(needle));
+};
+
+// Filter by status and search text, then cut out the requested page
+const filterAndPage = (items, { status, query, page }, getSearchFields) => {
+  const filtered = items.filter(
+    (item) => (status === 'all' || item.status === status) && matchesSearch(query, getSearchFields(item))
+  );
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // A status change can shrink the filtered list, so keep the page within range
+  const currentPage = Math.min(page, pageCount);
+  const start = (currentPage - 1) * PAGE_SIZE;
+
+  return {
+    total: filtered.length,
+    pageCount,
+    currentPage,
+    start,
+    rows: filtered.slice(start, start + PAGE_SIZE),
+  };
+};
+
+// Search box and status filter above a full list
+function ListToolbar({ query, onQueryChange, searchLabel, placeholder, status, onStatusChange, statuses, items }) {
+  return (
+    <div className="flex flex-col sm:flex-row gap-3">
+      <div className="relative grow flex items-center">
+        <span className="absolute left-4 text-text-mute pointer-events-none">
+          <Search className="w-4 h-4" />
+        </span>
+        <input
+          type="search"
+          aria-label={searchLabel}
+          placeholder={placeholder}
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          className="pl-icon-left py-2.5! text-xs!"
+        />
+      </div>
+      <div className="sm:w-52 shrink-0">
+        <select
+          aria-label="Filter by status"
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value)}
+          className="py-2.5! text-xs! font-semibold"
+        >
+          <option value="all">All statuses ({items.length})</option>
+          {statuses.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label} ({items.filter((item) => item.status === value).length})
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+// "Showing X-Y of Z" with previous/next page buttons
+function ListPagination({ start, rowCount, total, currentPage, pageCount, onPageChange, noun }) {
+  if (total === 0) return null;
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-body text-text-sub">
+      <p aria-live="polite">
+        Showing <strong className="text-text-main">{start + 1}-{start + rowCount}</strong> of{' '}
+        <strong className="text-text-main">{total}</strong> {noun}
+      </p>
+      {pageCount > 1 && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            aria-label="Previous page"
+            className="p-2 rounded-lg border border-border-color bg-bg-base text-text-sub hover:text-primary hover:border-primary/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="font-semibold">
+            Page {currentPage} of {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === pageCount}
+            aria-label="Next page"
+            className="p-2 rounded-lg border border-border-color bg-bg-base text-text-sub hover:text-primary hover:border-primary/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Loading and error placeholders for a full list that is fetched separately from the stats
+function ListStatus({ error, onRetry }) {
+  if (error) {
+    return (
+      <div className="text-center py-10 bg-bg-secondary/40 border border-border-color rounded-2xl flex flex-col items-center gap-3">
+        <AlertCircle className="w-8 h-8 text-danger" />
+        <p className="text-xs text-text-sub font-body">{error}</p>
+        <button type="button" onClick={onRetry} className="btn btn-secondary py-2 px-5 rounded-xl text-xs">
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 animate-pulse" aria-label="Loading list">
+      {[1, 2, 3, 4].map((idx) => (
+        <div key={idx} className="h-10 bg-border-color/60 rounded-xl"></div>
+      ))}
+    </div>
+  );
+}
 
 function AdminDashboard() {
   const { user, token } = useAuth();
@@ -24,18 +186,26 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Full ticket and order lists (null while loading)
+  const [tickets, setTickets] = useState(null);
+  const [ticketsError, setTicketsError] = useState('');
+  const [orders, setOrders] = useState(null);
+  const [ordersError, setOrdersError] = useState('');
+
+  // Search, status filter and page of each full list
+  const [ticketView, setTicketView] = useState({ status: 'all', query: '', page: 1 });
+  const [orderView, setOrderView] = useState({ status: 'all', query: '', page: 1 });
+
   // Active list tab: 'appointments', 'tickets', 'orders'
   const [activeTab, setActiveTab] = useState('appointments');
 
-  // Ticket modal reader states
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  // Open detail modals (looked up from the lists, so status changes show up in them too)
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const selectedTicket = tickets?.find((t) => t._id === selectedTicketId) || null;
+  const selectedOrder = orders?.find((o) => o._id === selectedOrderId) || null;
 
-  // Order modal reader states
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [orderModalOpen, setOrderModalOpen] = useState(false);
-
-  // Fetch admin dashboard details on mount (loading starts as true, so no reset is needed)
+  // Fetch admin dashboard details and full lists on mount (loading starts as true, so no reset is needed)
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
@@ -55,7 +225,40 @@ function AdminDashboard() {
     };
 
     fetchDashboardStats();
+
+    requestTickets(token).then(({ data, error }) => {
+      if (data) setTickets(data);
+      else setTicketsError(error);
+    });
+
+    requestOrders(token).then(({ data, error }) => {
+      if (data) setOrders(data);
+      else setOrdersError(error);
+    });
   }, [token]);
+
+  // Retry a failed list load
+  const reloadTickets = () => {
+    setTickets(null);
+    setTicketsError('');
+    requestTickets(token).then(({ data, error }) => {
+      if (data) setTickets(data);
+      else setTicketsError(error);
+    });
+  };
+
+  const reloadOrders = () => {
+    setOrders(null);
+    setOrdersError('');
+    requestOrders(token).then(({ data, error }) => {
+      if (data) setOrders(data);
+      else setOrdersError(error);
+    });
+  };
+
+  // Changing the search or filter goes back to the first page
+  const updateTicketView = (changes) => setTicketView((prev) => ({ ...prev, page: 1, ...changes }));
+  const updateOrderView = (changes) => setOrderView((prev) => ({ ...prev, page: 1, ...changes }));
 
   // Show a failed status update; retrying only helps for server-side (5xx) or connection failures
   const notifyStatusError = (message, onRetry) => {
@@ -82,20 +285,7 @@ function AdminDashboard() {
 
       if (resData.success) {
         // Update local state list dynamically
-        setStats((prev) => {
-          const updatedTickets = prev.recentTickets.map((t) => 
-            t._id === ticketId ? { ...t, status: nextStatus } : t
-          );
-          return {
-            ...prev,
-            recentTickets: updatedTickets,
-          };
-        });
-
-        // Update selected modal ticket if open
-        if (selectedTicket && selectedTicket._id === ticketId) {
-          setSelectedTicket((prev) => ({ ...prev, status: nextStatus }));
-        }
+        setTickets((prev) => prev.map((t) => (t._id === ticketId ? { ...t, status: nextStatus } : t)));
       } else {
         notifyStatusError(
           resData.message || 'Failed to update ticket status.',
@@ -123,26 +313,20 @@ function AdminDashboard() {
       if (status === 401) return;
 
       if (resData.success) {
-        // Update local state list dynamically
-        setStats((prev) => {
-          const updatedOrders = prev.recentOrders.map((o) => 
-            o._id === orderId ? { ...o, status: nextStatus } : o
-          );
-          return {
-            ...prev,
-            recentOrders: updatedOrders,
-          };
-        });
-
-        // Update selected modal order if open
-        if (selectedOrder && selectedOrder._id === orderId) {
-          setSelectedOrder((prev) => ({ ...prev, status: nextStatus }));
-        }
+        // Update local state list dynamically (the response has no populated patient, so only copy the status)
+        setOrders((prev) => prev.map((o) => (o._id === orderId ? { ...o, status: nextStatus } : o)));
       } else {
         notifyStatusError(
           resData.message || 'Failed to update order status.',
           status >= 500 ? retry : null
         );
+
+        // Another admin changed this order first: load its current status quietly
+        if (status === 409) {
+          requestOrders(token).then(({ data }) => {
+            if (data) setOrders(data);
+          });
+        }
       }
     } catch (err) {
       console.error('[Admin Dashboard] Patch order status error:', err.message);
@@ -150,25 +334,18 @@ function AdminDashboard() {
     }
   };
 
-  const handleOpenTicket = (ticket) => {
-    setSelectedTicket(ticket);
-    setTicketModalOpen(true);
-  };
+  const handleOpenTicket = (ticket) => setSelectedTicketId(ticket._id);
+  const handleCloseTicket = () => setSelectedTicketId(null);
+  const handleOpenOrder = (order) => setSelectedOrderId(order._id);
+  const handleCloseOrder = () => setSelectedOrderId(null);
 
-  const handleCloseTicket = () => {
-    setTicketModalOpen(false);
-    setSelectedTicket(null);
-  };
-
-  const handleOpenOrder = (order) => {
-    setSelectedOrder(order);
-    setOrderModalOpen(true);
-  };
-
-  const handleCloseOrder = () => {
-    setOrderModalOpen(false);
-    setSelectedOrder(null);
-  };
+  // Current page of each full list
+  const ticketList = tickets
+    ? filterAndPage(tickets, ticketView, (t) => [t.name, t.email, t.subject])
+    : null;
+  const orderList = orders
+    ? filterAndPage(orders, orderView, (o) => [o._id, o.patient?.name, o.patient?.email, o.contactPhone])
+    : null;
 
   // Helpers to color-code statuses
   const getTicketStatusBadge = (status) => {
@@ -195,41 +372,6 @@ function AdminDashboard() {
         return (
           <span className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider text-danger bg-danger/5 border border-danger/10 px-2 py-0.5 rounded-md">
             Unread
-          </span>
-        );
-    }
-  };
-
-  const getOrderStatusBadge = (status) => {
-    switch (status) {
-      case 'delivered':
-        return (
-          <span className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider text-success bg-success/5 border border-success/10 px-2 py-0.5 rounded-md">
-            Delivered
-          </span>
-        );
-      case 'shipped':
-        return (
-          <span className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider text-blue-500 bg-blue-500/5 border border-blue-500/10 px-2 py-0.5 rounded-md">
-            Shipped
-          </span>
-        );
-      case 'processing':
-        return (
-          <span className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider text-purple-500 bg-purple-500/5 border border-purple-500/10 px-2 py-0.5 rounded-md">
-            Processing
-          </span>
-        );
-      case 'cancelled':
-        return (
-          <span className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider text-text-mute bg-text-mute/5 border border-text-mute/10 px-2 py-0.5 rounded-md">
-            Cancelled
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider text-danger bg-danger/5 border border-danger/10 px-2 py-0.5 rounded-md">
-            Pending
           </span>
         );
     }
@@ -446,60 +588,95 @@ function AdminDashboard() {
             {activeTab === 'tickets' && (
               <div className="flex flex-col gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-text-main font-headings">Recent Support Tickets</h3>
+                  <h3 className="text-base font-bold text-text-main font-headings">All Support Tickets</h3>
                   <p className="text-xs text-text-sub font-body mt-0.5">Manage user inquiries and resolve tickets</p>
                 </div>
 
-                {stats.recentTickets.length === 0 ? (
+                {!ticketList ? (
+                  <ListStatus error={ticketsError} onRetry={reloadTickets} />
+                ) : tickets.length === 0 ? (
                   <div className="text-center py-10 bg-bg-secondary/40 border border-border-color rounded-2xl">
                     <Mail className="w-8 h-8 text-text-mute mx-auto mb-2" />
                     <p className="text-xs text-text-sub font-body">No support tickets registered in database</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto w-full">
-                    <table className="w-full text-left text-xs font-body border-collapse min-w-125">
-                      <thead>
-                        <tr className="border-b border-border-color/60 text-text-mute font-semibold">
-                          <th className="py-2.5">Name</th>
-                          <th className="py-2.5">Subject</th>
-                          <th className="py-2.5 text-center">Status</th>
-                          <th className="py-2.5 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.recentTickets.map((ticket) => (
-                          <tr 
-                            key={ticket._id}
-                            className="border-b border-border-color/30 hover:bg-bg-secondary/20 transition-colors cursor-pointer group"
-                            onClick={() => handleOpenTicket(ticket)}
-                          >
-                            <td className="py-3 font-semibold text-text-main truncate max-w-30">
-                              {ticket.name}
-                            </td>
-                            <td className="py-3 text-text-sub truncate max-w-55 group-hover:text-primary transition-colors">
-                              {ticket.subject}
-                            </td>
-                            <td className="py-3 text-center">
-                              {getTicketStatusBadge(ticket.status)}
-                            </td>
-                            <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                              <select
-                                value={ticket.status}
-                                aria-label={`Status of ticket from ${ticket.name}`}
-                                onChange={(e) => handleStatusChange(ticket._id, e.target.value)}
-                                className="text-[10px] py-1 px-2.5 rounded-lg border border-border-color bg-bg-base text-text-main font-semibold max-w-28.75"
+                  <>
+                    <ListToolbar
+                      query={ticketView.query}
+                      onQueryChange={(query) => updateTicketView({ query })}
+                      searchLabel="Search support tickets"
+                      placeholder="Search by name, email or subject..."
+                      status={ticketView.status}
+                      onStatusChange={(status) => updateTicketView({ status })}
+                      statuses={TICKET_STATUSES}
+                      items={tickets}
+                    />
+
+                    {ticketList.total === 0 ? (
+                      <div className="text-center py-10 bg-bg-secondary/40 border border-border-color rounded-2xl">
+                        <Search className="w-8 h-8 text-text-mute mx-auto mb-2" />
+                        <p className="text-xs text-text-sub font-body">No tickets match your search or filter</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full text-left text-xs font-body border-collapse min-w-150">
+                          <thead>
+                            <tr className="border-b border-border-color/60 text-text-mute font-semibold">
+                              <th className="py-2.5">Name</th>
+                              <th className="py-2.5">Subject</th>
+                              <th className="py-2.5">Received</th>
+                              <th className="py-2.5 text-center">Status</th>
+                              <th className="py-2.5 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ticketList.rows.map((ticket) => (
+                              <tr
+                                key={ticket._id}
+                                className="border-b border-border-color/30 hover:bg-bg-secondary/20 transition-colors cursor-pointer group"
+                                onClick={() => handleOpenTicket(ticket)}
                               >
-                                <option value="unread">Unread</option>
-                                <option value="read">Read</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="resolved">Resolved</option>
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                                <td className="py-3 font-semibold text-text-main truncate max-w-30">
+                                  {ticket.name}
+                                </td>
+                                <td className="py-3 text-text-sub truncate max-w-55 group-hover:text-primary transition-colors">
+                                  {ticket.subject}
+                                </td>
+                                <td className="py-3 text-text-sub whitespace-nowrap">
+                                  {new Date(ticket.createdAt).toLocaleDateString()}
+                                </td>
+                                <td className="py-3 text-center">
+                                  {getTicketStatusBadge(ticket.status)}
+                                </td>
+                                <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                  <select
+                                    value={ticket.status}
+                                    aria-label={`Status of ticket from ${ticket.name}`}
+                                    onChange={(e) => handleStatusChange(ticket._id, e.target.value)}
+                                    className="text-[10px]! py-1! px-2.5! rounded-lg border border-border-color bg-bg-base text-text-main font-semibold max-w-28.75 ml-auto"
+                                  >
+                                    {TICKET_STATUSES.map(({ value, label }) => (
+                                      <option key={value} value={value}>{label}</option>
+                                    ))}
+                                  </select>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <ListPagination
+                      start={ticketList.start}
+                      rowCount={ticketList.rows.length}
+                      total={ticketList.total}
+                      currentPage={ticketList.currentPage}
+                      pageCount={ticketList.pageCount}
+                      onPageChange={(page) => setTicketView((prev) => ({ ...prev, page }))}
+                      noun={ticketList.total === 1 ? 'ticket' : 'tickets'}
+                    />
+                  </>
                 )}
               </div>
             )}
@@ -508,69 +685,99 @@ function AdminDashboard() {
             {activeTab === 'orders' && (
               <div className="flex flex-col gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-text-main font-headings">Recent Pharmacy Orders</h3>
+                  <h3 className="text-base font-bold text-text-main font-headings">All Pharmacy Orders</h3>
                   <p className="text-xs text-text-sub font-body mt-0.5">Track sales checkups, shipping, and billing histories</p>
                 </div>
 
-                {!stats.recentOrders || stats.recentOrders.length === 0 ? (
+                {!orderList ? (
+                  <ListStatus error={ordersError} onRetry={reloadOrders} />
+                ) : orders.length === 0 ? (
                   <div className="text-center py-10 bg-bg-secondary/40 border border-border-color rounded-2xl">
                     <ShoppingBag className="w-8 h-8 text-text-mute mx-auto mb-2" />
                     <p className="text-xs text-text-sub font-body">No pharmacy checkout orders registered in database</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto w-full">
-                    <table className="w-full text-left text-xs font-body border-collapse min-w-137.5">
-                      <thead>
-                        <tr className="border-b border-border-color/60 text-text-mute font-semibold">
-                          <th className="py-2.5">Order ID</th>
-                          <th className="py-2.5">Patient</th>
-                          <th className="py-2.5">Date</th>
-                          <th className="py-2.5 text-center">Status</th>
-                          <th className="py-2.5 text-right">Total Paid</th>
-                          <th className="py-2.5 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.recentOrders.map((order) => (
-                          <tr 
-                            key={order._id}
-                            className="border-b border-border-color/30 hover:bg-bg-secondary/20 transition-colors cursor-pointer group"
-                            onClick={() => handleOpenOrder(order)}
-                          >
-                            <td className="py-3 font-mono font-bold text-text-main truncate max-w-25 group-hover:text-primary transition-colors">
-                              {order._id}
-                            </td>
-                            <td className="py-3 text-text-sub font-semibold">
-                              {order.patient?.name || 'Anonymous User'}
-                            </td>
-                            <td className="py-3 text-text-sub">
-                              {new Date(order.createdAt).toLocaleDateString()}
-                            </td>
-                            <td className="py-3 text-center">
-                              {getOrderStatusBadge(order.status)}
-                            </td>
-                            <td className="py-3 text-right font-extrabold text-primary">
-                              Rs {order.orderTotal}
-                            </td>
-                            <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                              <select
-                                value={order.status}
-                                aria-label={`Status of order ${order._id}`}
-                                onChange={(e) => handleOrderStatusChange(order._id, e.target.value)}
-                                className="text-[10px] py-1 px-2.5 rounded-lg border border-border-color bg-bg-base text-text-main font-semibold max-w-28.75"
+                  <>
+                    <ListToolbar
+                      query={orderView.query}
+                      onQueryChange={(query) => updateOrderView({ query })}
+                      searchLabel="Search pharmacy orders"
+                      placeholder="Search by order ID, patient, email or phone..."
+                      status={orderView.status}
+                      onStatusChange={(status) => updateOrderView({ status })}
+                      statuses={ORDER_STATUSES}
+                      items={orders}
+                    />
+
+                    {orderList.total === 0 ? (
+                      <div className="text-center py-10 bg-bg-secondary/40 border border-border-color rounded-2xl">
+                        <Search className="w-8 h-8 text-text-mute mx-auto mb-2" />
+                        <p className="text-xs text-text-sub font-body">No orders match your search or filter</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full text-left text-xs font-body border-collapse min-w-137.5">
+                          <thead>
+                            <tr className="border-b border-border-color/60 text-text-mute font-semibold">
+                              <th className="py-2.5">Order ID</th>
+                              <th className="py-2.5">Patient</th>
+                              <th className="py-2.5">Date</th>
+                              <th className="py-2.5 text-center">Status</th>
+                              <th className="py-2.5 text-right">Total Paid</th>
+                              <th className="py-2.5 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {orderList.rows.map((order) => (
+                              <tr
+                                key={order._id}
+                                className="border-b border-border-color/30 hover:bg-bg-secondary/20 transition-colors cursor-pointer group"
+                                onClick={() => handleOpenOrder(order)}
                               >
-                                <option value="pending">Pending</option>
-                                <option value="processing">Processing</option>
-                                <option value="shipped">Shipped</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                                <td className="py-3 font-mono font-bold text-text-main truncate max-w-25 group-hover:text-primary transition-colors">
+                                  {order._id}
+                                </td>
+                                <td className="py-3 text-text-sub font-semibold">
+                                  {order.patient?.name || 'Anonymous User'}
+                                </td>
+                                <td className="py-3 text-text-sub">
+                                  {new Date(order.createdAt).toLocaleDateString()}
+                                </td>
+                                <td className="py-3 text-center">
+                                  <OrderStatusBadge status={order.status} />
+                                </td>
+                                <td className="py-3 text-right font-extrabold text-primary">
+                                  Rs {order.orderTotal}
+                                </td>
+                                <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                  <select
+                                    value={order.status}
+                                    aria-label={`Status of order ${order._id}`}
+                                    onChange={(e) => handleOrderStatusChange(order._id, e.target.value)}
+                                    className="text-[10px]! py-1! px-2.5! rounded-lg border border-border-color bg-bg-base text-text-main font-semibold max-w-28.75 ml-auto"
+                                  >
+                                    {ORDER_STATUSES.map(({ value, label }) => (
+                                      <option key={value} value={value}>{label}</option>
+                                    ))}
+                                  </select>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <ListPagination
+                      start={orderList.start}
+                      rowCount={orderList.rows.length}
+                      total={orderList.total}
+                      currentPage={orderList.currentPage}
+                      pageCount={orderList.pageCount}
+                      onPageChange={(page) => setOrderView((prev) => ({ ...prev, page }))}
+                      noun={orderList.total === 1 ? 'order' : 'orders'}
+                    />
+                  </>
                 )}
               </div>
             )}
@@ -581,7 +788,7 @@ function AdminDashboard() {
       </div>
 
       {/* SUPPORT TICKET VIEW MODAL OVERLAY */}
-      {ticketModalOpen && selectedTicket && (
+      {selectedTicket && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="m-auto w-full max-w-lg bg-bg-base border border-border-color rounded-3xl shadow-2xl relative max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
             
@@ -653,7 +860,7 @@ function AdminDashboard() {
       )}
 
       {/* PHARMACY ORDER RECEIPT VIEW MODAL OVERLAY */}
-      {orderModalOpen && selectedOrder && (
+      {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="m-auto w-full max-w-lg bg-bg-base border border-border-color rounded-3xl shadow-2xl relative max-h-[85vh] overflow-hidden flex flex-col animate-scale-in">
             
@@ -677,7 +884,7 @@ function AdminDashboard() {
                 <h2 className="text-base font-mono font-bold text-text-main mt-2">ID: {selectedOrder._id}</h2>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className="text-[10px] text-text-mute font-body">Status:</span>
-                  {getOrderStatusBadge(selectedOrder.status)}
+                  <OrderStatusBadge status={selectedOrder.status} />
                 </div>
               </div>
 

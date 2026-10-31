@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { rememberPage } from '../../utils/authRedirect';
-import { HeartPulse, ShoppingCart, Sun, Moon, Menu, X, LogOut, User, Calendar } from 'lucide-react';
+import { HeartPulse, ShoppingCart, Sun, Moon, Menu, X, LogOut, User, Calendar, Package } from 'lucide-react';
 
 // Remembered theme choice (also read by the inline script in index.html before the first paint)
 const THEME_STORAGE_KEY = 'theme';
@@ -202,6 +202,14 @@ function Navbar() {
                     <Calendar className="w-4 h-4 text-primary" />
                     My Appointments
                   </Link>
+                  <Link
+                    to="/my-orders"
+                    onClick={handleNavClick}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-text-sub hover:text-primary hover:bg-primary/5 rounded-xl transition-colors mb-1.5"
+                  >
+                    <Package className="w-4 h-4 text-primary" />
+                    My Orders
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -305,6 +313,14 @@ function Navbar() {
               >
                 <Calendar className="w-4 h-4 text-primary" />
                 My Appointments
+              </Link>
+              <Link
+                to="/my-orders"
+                onClick={handleNavClick}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-text-sub hover:text-primary bg-bg-secondary/40 rounded-xl justify-center transition-colors border border-border-color"
+              >
+                <Package className="w-4 h-4 text-primary" />
+                My Orders
               </Link>
               <button
                 type="button"

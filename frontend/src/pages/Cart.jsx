@@ -497,13 +497,21 @@ function Cart() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleCloseSuccess}
-              className="btn btn-primary w-full text-sm! font-semibold"
-            >
-              Close Receipt
-            </button>
+            <div className="w-full flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={handleCloseSuccess}
+                className="btn btn-secondary flex-1 text-sm! font-semibold whitespace-nowrap"
+              >
+                Close Receipt
+              </button>
+              <Link
+                to="/my-orders"
+                className="btn btn-primary flex-1 text-sm! font-semibold text-center whitespace-nowrap"
+              >
+                Track My Orders
+              </Link>
+            </div>
           </div>
         </div>
       )}

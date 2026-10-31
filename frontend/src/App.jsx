@@ -14,6 +14,7 @@ import Home from './pages/Home';
 import Doctors from './pages/Doctors';
 import BookDoctor from './pages/BookDoctor';
 import MyAppointments from './pages/MyAppointments';
+import MyOrders from './pages/MyOrders';
 import Medicines from './pages/Medicines';
 import Labs from './pages/Labs';
 import Emergency from './pages/Emergency';
@@ -58,6 +59,7 @@ function AnimatedRoutes() {
           {/* Signed-in users only (guests are sent to /login and brought back afterwards) */}
           <Route element={<ProtectedRoute />}>
             <Route path="/my-appointments" element={<PageTransition><MyAppointments /></PageTransition>} />
+            <Route path="/my-orders" element={<PageTransition><MyOrders /></PageTransition>} />
           </Route>
           <Route element={<ProtectedRoute role="admin" />}>
             <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />

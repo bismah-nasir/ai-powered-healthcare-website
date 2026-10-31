@@ -1,0 +1,21 @@
+{
+  "name": "pulsecare-video",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Remotion project for the PulseCare AI demo video",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render PulseCareDemo ../docs/demo/pulsecare-demo.mp4",
+    "music": "node scripts/compose-music.mjs"
+  },
+  "dependencies": {
+    "@fontsource/outfit": "^5.2.8",
+    "@fontsource/plus-jakarta-sans": "^5.2.8",
+    "@remotion/cli": "4.0.539",
+    "@remotion/transitions": "4.0.539",
+    "lucide-react": "^1.28.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "remotion": "4.0.539"
+  }
+}

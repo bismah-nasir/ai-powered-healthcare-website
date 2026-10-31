@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Phone, MapPin, AlertCircle, ShieldAlert, HeartPulse, Building, Droplets } from 'lucide-react';
-import { apiRequest } from '../services/api';
+import { apiRequest, isAbortError } from '../services/api';
+import CategoryFilter from '../components/common/CategoryFilter';
 
 const CATEGORIES = [
   'All',
@@ -21,6 +22,9 @@ function Emergency() {
 
   // Fetch emergency contacts dynamically from the backend
   useEffect(() => {
+    // Each new search cancels the previous request, so a slow older response can't overwrite newer results
+    const controller = new AbortController();
+
     const fetchEmergencies = async () => {
       setLoading(true);
       setError('');
@@ -29,7 +33,8 @@ function Emergency() {
         if (selectedCategory !== 'All') params.append('category', selectedCategory);
         if (searchQuery) params.append('search', searchQuery);
 
-        const { data: resData } = await apiRequest(`/api/emergency?${params.toString()}`);
+        const { data: resData } = await apiRequest(`/api/emergency?${params.toString()}`, { signal: controller.signal });
+        if (controller.signal.aborted) return;
 
         if (resData.success) {
           setEmergencies(resData.data);
@@ -37,10 +42,11 @@ function Emergency() {
           setError(resData.message || 'Failed to fetch emergency contacts directory.');
         }
       } catch (err) {
+        if (isAbortError(err)) return;
         console.error('[Emergency Page] Fetch error:', err.message);
         setError('Failed to connect to the server. Please ensure the backend is running.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
@@ -48,7 +54,10 @@ function Emergency() {
       fetchEmergencies();
     }, 300);
 
-    return () => clearTimeout(delayDebounce);
+    return () => {
+      clearTimeout(delayDebounce);
+      controller.abort();
+    };
   }, [searchQuery, selectedCategory]);
 
   const handleResetFilters = () => {
@@ -103,9 +112,9 @@ function Emergency() {
       <div className="max-w-300 mx-auto flex flex-col gap-8 relative z-10">
         
         {/* Page Title & Emergency Banner */}
-        <div className="bg-danger/5 border border-danger/10 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex gap-4 items-start text-center md:text-left">
-            <div className="w-12 h-12 bg-danger/10 text-danger rounded-full flex items-center justify-center shrink-0 mx-auto md:mx-0">
+        <div className="bg-danger/5 border border-danger/10 rounded-3xl p-6 md:p-8 flex flex-col lg:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start text-center sm:text-left">
+            <div className="w-12 h-12 bg-danger/10 text-danger rounded-full flex items-center justify-center shrink-0">
               <ShieldAlert className="w-6 h-6" />
             </div>
             <div>
@@ -119,7 +128,7 @@ function Emergency() {
           </div>
           <a 
             href="tel:1122" 
-            className="btn btn-danger px-8 py-4 rounded-2xl text-base font-bold flex items-center gap-2 w-full md:w-auto justify-center"
+            className="btn btn-danger px-8 py-4 rounded-2xl text-base font-bold flex items-center gap-2 w-full lg:w-auto justify-center whitespace-nowrap shrink-0"
           >
             <Phone className="w-5 h-5 fill-current" />
             Call Emergency: 1122
@@ -136,6 +145,7 @@ function Emergency() {
             </span>
             <input
               type="text"
+              aria-label="Search emergency services"
               placeholder="Search by facility name, city, or address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -143,48 +153,13 @@ function Emergency() {
             />
           </div>
 
-          {/* Mobile responsive selector dropdown (hidden on desktop) */}
-          <div className="w-full md:w-auto md:hidden">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="focus:border-primary"
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
         </div>
 
         {/* Main Catalog View Grid */}
-        <div className="w-full flex flex-col lg:flex-row gap-8 items-start">
+        <div className="w-full flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           
-          {/* Desktop Left Sidebar: Categories selection list */}
-          <div className="hidden md:flex lg:flex flex-col gap-2 w-full md:w-64 shrink-0 glass-panel rounded-3xl p-6">
-            <h3 className="text-sm font-bold text-text-main tracking-wider uppercase font-headings mb-3 border-b border-border-color pb-2">
-              Categories
-            </h3>
-            <div className="flex flex-col gap-1.5">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`text-left px-4 py-2.5 rounded-xl text-xs font-semibold font-body transition-all duration-300 border-0 ${
-                    selectedCategory === cat
-                      ? 'bg-danger text-white shadow-md shadow-danger/20'
-                      : 'text-text-sub hover:text-danger hover:bg-danger/5 bg-transparent'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Category picker: chip row on phone & tablet, sidebar on desktop */}
+          <CategoryFilter title="Categories" options={CATEGORIES} value={selectedCategory} onChange={setSelectedCategory} tone="danger" />
 
           {/* Right Segment: Emergency Cards Grid */}
           <div className="grow w-full">
@@ -280,7 +255,7 @@ function Emergency() {
                         {/* Primary Click to call */}
                         <a 
                           href={`tel:${item.contactNumber.replace(/[^0-9+]/g, '')}`}
-                          className="btn btn-danger text-xs! font-semibold flex items-center gap-1.5 w-full justify-center"
+                          className="btn btn-danger text-xs! font-semibold flex items-center gap-1.5 w-full sm:flex-1 justify-center whitespace-nowrap"
                         >
                           <Phone className="w-3.5 h-3.5 fill-current" />
                           Call: {item.contactNumber}
@@ -290,7 +265,7 @@ function Emergency() {
                         {item.altContactNumber && (
                           <a 
                             href={`tel:${item.altContactNumber.replace(/[^0-9+]/g, '')}`}
-                            className="btn btn-secondary text-xs! text-text-sub hover:text-text-main font-semibold transition-all w-full justify-center"
+                            className="btn btn-secondary text-xs! text-text-sub hover:text-text-main font-semibold transition-all w-full sm:w-auto shrink-0 justify-center whitespace-nowrap"
                           >
                             Alt Call
                           </a>

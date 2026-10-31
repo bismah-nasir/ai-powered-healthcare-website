@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotify } from '../context/NotificationContext';
 import { Search, Calendar, Clock, AlertTriangle, ShieldAlert, HeartPulse, CheckCircle, Info, User, Phone } from 'lucide-react';
-import { apiRequest } from '../services/api';
+import { apiRequest, isAbortError } from '../services/api';
+import CategoryFilter from '../components/common/CategoryFilter';
 import { rememberPage } from '../utils/authRedirect';
 
 const CATEGORIES = [
@@ -17,6 +18,13 @@ const CATEGORIES = [
   'Infectious Diseases',
   'Allergy Tests'
 ];
+
+// YYYY-MM-DD in the user's own timezone (toISOString() uses UTC, which is a day behind
+// for users ahead of UTC shortly after midnight), as expected by <input type="date">
+const toDateInputValue = (date) => {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
 
 function Labs() {
   const { user } = useAuth();
@@ -55,6 +63,9 @@ function Labs() {
 
   // Fetch lab tests dynamically from the backend
   useEffect(() => {
+    // Each new search cancels the previous request, so a slow older response can't overwrite newer results
+    const controller = new AbortController();
+
     const fetchLabTests = async () => {
       setLoading(true);
       setError('');
@@ -63,7 +74,8 @@ function Labs() {
         if (selectedCategory !== 'All') params.append('category', selectedCategory);
         if (searchQuery) params.append('search', searchQuery);
 
-        const { data: resData } = await apiRequest(`/api/labs?${params.toString()}`);
+        const { data: resData } = await apiRequest(`/api/labs?${params.toString()}`, { signal: controller.signal });
+        if (controller.signal.aborted) return;
 
         if (resData.success) {
           setLabTests(resData.data);
@@ -71,10 +83,11 @@ function Labs() {
           setError(resData.message || 'Failed to fetch diagnostic checkups directory.');
         }
       } catch (err) {
+        if (isAbortError(err)) return;
         console.error('[Labs Page] Fetch error:', err.message);
         setError('Failed to connect to the server. Please ensure the backend is running.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
@@ -82,7 +95,10 @@ function Labs() {
       fetchLabTests();
     }, 300);
 
-    return () => clearTimeout(delayDebounce);
+    return () => {
+      clearTimeout(delayDebounce);
+      controller.abort();
+    };
   }, [searchQuery, selectedCategory]);
 
   // Trigger Booking wizard checks
@@ -97,7 +113,7 @@ function Labs() {
     // Set default booking date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    setBookingDate(tomorrow.toISOString().split('T')[0]);
+    setBookingDate(toDateInputValue(tomorrow));
   };
 
   // Submit test booking request
@@ -170,6 +186,7 @@ function Labs() {
             </span>
             <input
               type="text"
+              aria-label="Search lab tests"
               placeholder="Search by test name or specific parameter (e.g. cholesterol)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -177,48 +194,13 @@ function Labs() {
             />
           </div>
 
-          {/* Mobile responsive selector dropdown (hidden on desktop) */}
-          <div className="w-full md:w-auto md:hidden">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="focus:border-primary"
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
         </div>
 
         {/* Main Catalog View Grid */}
-        <div className="w-full flex flex-col lg:flex-row gap-8 items-start">
+        <div className="w-full flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           
-          {/* Desktop Left Sidebar: Categories selection list */}
-          <div className="hidden md:flex lg:flex flex-col gap-2 w-full md:w-64 shrink-0 glass-panel rounded-3xl p-6">
-            <h3 className="text-sm font-bold text-text-main tracking-wider uppercase font-headings mb-3 border-b border-border-color pb-2">
-              Categories
-            </h3>
-            <div className="flex flex-col gap-1.5">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`text-left px-4 py-2.5 rounded-xl text-xs font-semibold font-body transition-all duration-300 border-0 ${
-                    selectedCategory === cat
-                      ? 'bg-primary text-white shadow-md shadow-primary/20'
-                      : 'text-text-sub hover:text-primary hover:bg-primary/5 bg-transparent'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Category picker: chip row on phone & tablet, sidebar on desktop */}
+          <CategoryFilter title="Categories" options={CATEGORIES} value={selectedCategory} onChange={setSelectedCategory} />
 
           {/* Right Segment: Lab Tests Cards Grid */}
           <div className="grow w-full">
@@ -332,7 +314,7 @@ function Labs() {
                         <button
                           type="button"
                           onClick={() => handleBookTestClick(test)}
-                          className="btn btn-primary rounded-2xl py-3 px-5 text-xs font-semibold flex items-center gap-1.5 transition-all duration-300 border-0 shadow-md shadow-primary/10"
+                          className="btn btn-primary rounded-xl text-sm! font-semibold flex items-center gap-1.5 transition-all duration-300 border-0 shadow-md shadow-primary/10"
                         >
                           Book Test
                         </button>
@@ -351,10 +333,10 @@ function Labs() {
 
       {/* BOOKING CHECKOUT DIALOG MODAL */}
       {bookingModalOpen && selectedTest && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <form 
             onSubmit={handleBookingSubmit}
-            className="w-full max-w-lg bg-bg-base border border-border-color rounded-3xl p-8 flex flex-col gap-5 shadow-2xl relative"
+            className="m-auto w-full max-w-lg bg-bg-base border border-border-color rounded-3xl p-6 sm:p-8 flex flex-col gap-5 shadow-2xl relative"
           >
             {/* Modal Header */}
             <div>
@@ -431,6 +413,7 @@ function Labs() {
                   id="lab-booking-date"
                   type="date"
                   required
+                  min={toDateInputValue(new Date())}
                   value={bookingDate}
                   onChange={(e) => setBookingDate(e.target.value)}
                   className="pl-icon-left focus:border-primary w-full"
@@ -462,8 +445,8 @@ function Labs() {
 
       {/* BOOKING SUCCESS RECEIPT MODAL */}
       {bookingSuccess && selectedTest && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="m-auto w-full max-w-md bg-bg-base border border-border-color rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center gap-5 shadow-2xl animate-scale-in">
             <div className="w-14 h-14 bg-success/10 flex items-center justify-center rounded-full">
               <CheckCircle className="w-9 h-9 text-success" />
             </div>

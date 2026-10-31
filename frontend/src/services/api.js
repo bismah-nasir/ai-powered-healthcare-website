@@ -17,12 +17,14 @@ export const setUnauthorizedHandler = (handler) => {
  * Call the backend API.
  * Resolves to { ok, status, data } for every HTTP response, where data is the parsed
  * JSON body (an empty object if the body is missing or not JSON, e.g. a proxy error page).
- * Rejects only when the server cannot be reached, so callers keep a catch for that case.
+ * Rejects only when the server cannot be reached, or when the request is aborted
+ * through options.signal (check isAbortError in the catch to ignore that case).
  *
  * @param {string} path    API path starting with '/api', e.g. '/api/doctors?search=heart'
- * @param {object} options method, JSON body, and the login token for protected routes
+ * @param {object} options method, JSON body, the login token for protected routes,
+ *                         and an AbortSignal to cancel a request that is no longer needed
  */
-export const apiRequest = async (path, { method = 'GET', body, token } = {}) => {
+export const apiRequest = async (path, { method = 'GET', body, token, signal } = {}) => {
   const headers = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -31,6 +33,7 @@ export const apiRequest = async (path, { method = 'GET', body, token } = {}) => 
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
   });
 
   let data = {};
@@ -49,3 +52,6 @@ export const apiRequest = async (path, { method = 'GET', body, token } = {}) => 
 
   return { ok: response.ok, status: response.status, data };
 };
+
+// True for the error thrown when a request is cancelled with an AbortController
+export const isAbortError = (error) => error?.name === 'AbortError';

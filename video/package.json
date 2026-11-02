@@ -6,6 +6,7 @@
   "scripts": {
     "studio": "remotion studio",
     "render": "remotion render PulseCareDemo ../docs/demo/pulsecare-demo.mp4",
+    "poster": "remotion still PulseCarePoster ../docs/demo/poster.jpg --image-format=jpeg",
     "music": "node scripts/compose-music.mjs"
   },
   "dependencies": {

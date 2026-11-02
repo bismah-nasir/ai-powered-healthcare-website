@@ -1,6 +1,6 @@
 # PulseCare AI — Demo Video
 
-A 60-second product video built with [Remotion](https://www.remotion.dev) (React for video). The rendered file is [`docs/demo/pulsecare-demo.mp4`](../docs/demo/pulsecare-demo.mp4).
+A 60-second product video and a poster (thumbnail) image, built with [Remotion](https://www.remotion.dev) (React for video). The rendered files are [`docs/demo/pulsecare-demo.mp4`](../docs/demo/pulsecare-demo.mp4) and [`docs/demo/poster.jpg`](../docs/demo/poster.jpg).
 
 ## Commands
 
@@ -9,8 +9,11 @@ cd video
 npm install
 npm run studio   # preview and scrub the video in the browser
 npm run render   # render to ../docs/demo/pulsecare-demo.mp4 (1920x1080, 30 fps)
+npm run poster   # render to ../docs/demo/poster.jpg
 npm run music    # regenerate public/music.wav
 ```
+
+If another dev server already uses port 3000, add a free port, e.g. `npm run poster -- --port=3123`.
 
 ## How it is put together
 
@@ -23,6 +26,8 @@ npm run music    # regenerate public/music.wav
 | `src/theme.js` | Brand colours (copied from `frontend/src/index.css`), live URL and screenshot sizes |
 | `public/screens/` | Screenshots of the app, captured at 2x so zooms stay sharp |
 | `scripts/compose-music.mjs` | Composes and synthesizes the background music |
+| `src/poster/` | The poster: `Poster.jsx` lays it out, `Logo.jsx` draws the mark, `theme.js` holds its colours |
+| `public/poster/screenshots/` | The two screenshots used by the poster |
 
 Captions use the app's own fonts, **Outfit** (headings) and **Plus Jakarta Sans** (body), installed from npm so rendering works offline.
 
